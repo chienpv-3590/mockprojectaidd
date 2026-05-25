@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Montserrat, Montserrat_Alternates } from "next/font/google";
+import { Geist, Geist_Mono, Montserrat, Montserrat_Alternates, Orbitron } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,6 +26,13 @@ const montserratAlternates = Montserrat_Alternates({
   display: "swap",
 });
 
+const orbitron = Orbitron({
+  variable: "--font-orbitron",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "SAA 2025 — Sun* Annual Awards",
@@ -42,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${montserratAlternates.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${montserratAlternates.variable} ${orbitron.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

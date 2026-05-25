@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getAwards } from "@/lib/data/awards";
 import { getEventDate } from "@/lib/data/event-settings";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
-import { getReceivedCount } from "@/lib/data/kudos";
 import { Header } from "./_components/home/header";
 import { Hero } from "./_components/home/hero";
 import { AwardsGrid } from "./_components/home/awards-grid";
@@ -14,15 +13,7 @@ import { RootFurtherDescription } from "./_components/home/root-further-descript
 import { CountdownTimer } from "./_components/home/countdown-timer";
 import { UserMenu } from "./_components/home/user-menu";
 import { NotificationBell } from "./_components/home/notification-bell";
-
-// Language switcher: visual stub (per plan — deferred to future i18n plan).
-function LanguageStub() {
-  return (
-    <button type="button" aria-label="Change language" className="text-sm text-white/80 transition hover:text-white">
-      VN
-    </button>
-  );
-}
+import { LanguageSwitcher } from "./_components/home/language-switcher";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -32,12 +23,11 @@ export default async function HomePage() {
   // Belt-and-suspenders — proxy middleware also enforces this.
   if (!user) redirect("/login");
 
-  const [awards, eventDate, notifications, unreadCount, kudosReceived] = await Promise.all([
+  const [awards, eventDate, notifications, unreadCount] = await Promise.all([
     getAwards(supabase),
     getEventDate(supabase),
     getNotifications(supabase, user.id, 10),
     getUnreadCount(supabase, user.id),
-    getReceivedCount(supabase, user.id),
   ]);
 
   const userProps = {
@@ -49,15 +39,33 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#00101A]">
       <Header
-        languageSlot={<LanguageStub />}
+        languageSlot={<LanguageSwitcher />}
         notificationSlot={<NotificationBell initialNotifications={notifications} initialUnreadCount={unreadCount} />}
         userSlot={<UserMenu user={userProps} />}
       />
       <main>
-        <Hero countdownSlot={<CountdownTimer eventDateIso={eventDate?.toISOString() ?? null} />} />
-        <RootFurtherDescription />
+        {/* Painterly keyvisual background spans Hero + top of RootFurther
+            per design: Keyvisual BG Y 0–1392, Cover Y 0–1480 with
+            linear-gradient(12deg) fading dark at bottom → transparent at top. */}
+        <div className="relative isolate overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-20 h-[1400px] bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url(/home/keyvisual-bg.jpg)" }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[1480px]"
+            style={{
+              background:
+                "linear-gradient(12deg, #00101A 23.7%, rgba(0, 18, 29, 0.46) 38.34%, rgba(0, 19, 32, 0) 48.92%)",
+            }}
+          />
+          <Hero countdownSlot={<CountdownTimer eventDateIso={eventDate?.toISOString() ?? null} />} />
+          <RootFurtherDescription />
+        </div>
         <AwardsGrid awards={awards} />
-        <KudosSection receivedCount={kudosReceived} />
+        <KudosSection />
       </main>
       <Footer />
       <FloatingFab />

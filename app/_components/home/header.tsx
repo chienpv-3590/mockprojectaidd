@@ -6,10 +6,9 @@ const ASSETS = "/home";
 const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
 
 const NAV_LINKS = [
-  { label: "About SAA 2025", href: "#" },
-  { label: "Awards Information", href: "#" },
-  { label: "Voting Tickets", href: "#" },
-  { label: "Sun* Kudos", href: "#" },
+  { label: "About SAA 2025", href: "#", active: true },
+  { label: "Awards Information", href: "#", active: false },
+  { label: "Sun* Kudos", href: "#", active: false },
 ];
 
 type HeaderProps = {
@@ -25,11 +24,13 @@ const NAV_STYLE = {
   letterSpacing: "0.3px",
 };
 
+const ACTIVE_YELLOW = "#FFEA9E";
+
 export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps) {
   return (
     <header
       className="sticky top-0 z-30 flex h-20 items-center justify-between px-6 py-3 backdrop-blur-md sm:px-10 lg:px-20"
-      style={{ backgroundColor: "rgba(16, 20, 23, 0.8)" }}
+      style={{ backgroundColor: "rgba(0, 16, 26, 0.6)" }}
     >
       <div className="flex items-center gap-10">
         <Link href="/" aria-label="Sun* Annual Awards 2025 — Home" className="shrink-0">
@@ -42,13 +43,17 @@ export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps
             className="h-12 w-auto"
           />
         </Link>
-        <nav aria-label="Main" className="hidden lg:flex items-center gap-7">
+        <nav aria-label="Main" className="hidden lg:flex items-center gap-8">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              style={NAV_STYLE}
-              className="text-white/85 transition hover:text-white"
+              style={{ ...NAV_STYLE, color: link.active ? ACTIVE_YELLOW : undefined }}
+              className={
+                link.active
+                  ? "border-b-2 border-[#FFEA9E] pb-1 transition"
+                  : "text-white/85 transition hover:text-white"
+              }
             >
               {link.label}
             </Link>
@@ -56,8 +61,8 @@ export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps
         </nav>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
-        {languageSlot}
         {notificationSlot}
+        {languageSlot}
         {userSlot}
       </div>
     </header>

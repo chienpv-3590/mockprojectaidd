@@ -6,12 +6,12 @@
 -- ============================================================================
 insert into public.awards (code, title_vi, description_vi, thumbnail_path, display_order)
 values
-  ('top-talent',         'Top Talent',             'Tôn vinh nhân tài xuất sắc nhất năm',           '/home/awards/top-talent.png',         1),
-  ('top-project',        'Top Project',            'Dự án nổi bật mang lại giá trị cao',            '/home/awards/top-project.png',        2),
-  ('top-project-leader', 'Top Project Leader',     'Người dẫn dắt dự án xuất sắc',                  '/home/awards/top-project-leader.png', 3),
-  ('best-manager',       'Best Manager',           'Nhà quản lý của năm',                           '/home/awards/best-manager.png',       4),
-  ('signature-creator',  'Signature 2025 Creator', 'Người sáng tạo dấu ấn năm 2025',                '/home/awards/signature-2025-creator.png',  5),
-  ('mvp',                'MVP',                    'Most Valuable Person — người có đóng góp lớn nhất', '/home/awards/mvp.png',           6)
+  ('top-talent',         'Top Talent',                'Vinh danh top cá nhân xuất sắc trên mọi phương diện',                       '/home/awards/top-talent.png',             1),
+  ('top-project',        'Top Project',               'Vinh danh dự án xuất sắc trên mọi phương diện, dự án có doanh thu nổi bật', '/home/awards/top-project.png',            2),
+  ('top-project-leader', 'Top Project Leader',        'Vinh danh người quản lý truyền cảm hứng và dẫn dắt dự án bứt phá',          '/home/awards/top-project-leader.png',     3),
+  ('best-manager',       'Best Manager',              'Vinh danh người quản lý có năng lực quản lý tốt, dẫn dắt đội nhóm',         '/home/awards/best-manager.png',           4),
+  ('signature-creator',  'Signature 2025 - Creator',  'Vinh danh người quản lý có năng lực quản lý tốt, dẫn dắt đội nhóm',         '/home/awards/signature-2025-creator.png', 5),
+  ('mvp',                'MVP (Most Valuable Person)','Vinh danh người quản lý có năng lực quản lý tốt, dẫn dắt đội nhóm',         '/home/awards/mvp.png',                    6)
 on conflict (code) do update set
   title_vi       = excluded.title_vi,
   description_vi = excluded.description_vi,
