@@ -27,8 +27,11 @@ const NAV_STYLE = {
 
 export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between bg-[#00101A]/70 px-6 py-4 backdrop-blur-md sm:px-10">
-      <div className="flex items-center gap-8">
+    <header
+      className="sticky top-0 z-30 flex h-20 items-center justify-between px-6 py-3 backdrop-blur-md sm:px-10 lg:px-20"
+      style={{ backgroundColor: "rgba(16, 20, 23, 0.8)" }}
+    >
+      <div className="flex items-center gap-10">
         <Link href="/" aria-label="Sun* Annual Awards 2025 — Home" className="shrink-0">
           <Image
             src={`${ASSETS}/logo.png`}
@@ -36,10 +39,10 @@ export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps
             width={52}
             height={48}
             priority
-            className="h-10 w-auto sm:h-12"
+            className="h-12 w-auto"
           />
         </Link>
-        <nav aria-label="Main" className="hidden lg:flex items-center gap-6">
+        <nav aria-label="Main" className="hidden lg:flex items-center gap-7">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.label}

@@ -17,15 +17,15 @@ type KudosSectionProps = {
 
 export function KudosSection({ receivedCount = 0 }: KudosSectionProps) {
   return (
-    <section className="relative isolate overflow-hidden bg-[#00101A] px-6 py-20 text-white sm:px-10">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-40"
-        style={{ backgroundImage: `url(${ASSETS}/kudos-background.png)` }}
-      />
-      <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
+    <section className="bg-[#00101A] px-6 py-24 text-white sm:px-10 lg:py-32">
+      <div className="relative isolate mx-auto flex max-w-6xl flex-col items-center overflow-hidden rounded-2xl bg-[#0F0F0F] px-6 py-16 text-center sm:px-16 sm:py-24">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-50"
+          style={{ backgroundImage: `url(${ASSETS}/kudos-background.png)` }}
+        />
         <p
-          className="text-xs uppercase tracking-[0.3em] text-white/60"
+          className="text-xs uppercase tracking-[0.3em] text-white/70"
           style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 600 }}
         >
           Phong trào ghi nhận
@@ -36,7 +36,7 @@ export function KudosSection({ receivedCount = 0 }: KudosSectionProps) {
           width={364}
           height={72}
           unoptimized
-          className="mt-4 h-16 w-auto"
+          className="mt-6 h-20 w-auto sm:h-24"
         />
         <p
           className="mt-6 max-w-2xl text-white/80"

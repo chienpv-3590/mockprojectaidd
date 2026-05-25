@@ -41,7 +41,7 @@ export function CountdownTimer({ eventDateIso }: CountdownTimerProps) {
   }
 
   return (
-    <div className="flex items-center gap-3 text-white">
+    <div className="flex items-center gap-6 text-white sm:gap-10">
       <Box value={remaining.d} label="Ngày" />
       <Separator />
       <Box value={remaining.h} label="Giờ" />
@@ -53,14 +53,17 @@ export function CountdownTimer({ eventDateIso }: CountdownTimerProps) {
 
 function Box({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-3">
       <span
-        className="rounded-md bg-white/10 px-3 py-2 text-3xl tabular-nums sm:text-4xl"
+        className="rounded-lg border border-white/15 bg-white/10 px-5 py-3 text-5xl tabular-nums shadow-inner backdrop-blur-sm sm:px-7 sm:py-4 sm:text-6xl"
         style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 700 }}
       >
         {String(value).padStart(2, "0")}
       </span>
-      <span className="text-xs uppercase tracking-wider text-white/70" style={{ fontFamily: FONT_MONTSERRAT }}>
+      <span
+        className="text-xs uppercase tracking-[0.2em] text-white/70 sm:text-sm"
+        style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 600 }}
+      >
         {label}
       </span>
     </div>
@@ -69,7 +72,11 @@ function Box({ value, label }: { value: number; label: string }) {
 
 function Separator() {
   return (
-    <span className="text-3xl text-white/40 sm:text-4xl" aria-hidden style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 700 }}>
+    <span
+      className="-translate-y-3 text-5xl text-white/30 sm:text-6xl"
+      aria-hidden
+      style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 700 }}
+    >
       :
     </span>
   );

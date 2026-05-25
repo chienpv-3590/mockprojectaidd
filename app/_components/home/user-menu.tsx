@@ -43,7 +43,8 @@ export function UserMenu({ user }: UserMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-white/10 text-white transition hover:bg-white/20"
+        className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded text-white transition hover:bg-white/10"
+        style={{ border: "1px solid #998C5F" }}
       >
         {user.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
