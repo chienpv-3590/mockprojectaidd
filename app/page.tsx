@@ -10,6 +10,7 @@ import { AwardsGrid } from "./_components/home/awards-grid";
 import { KudosSection } from "./_components/home/kudos-section";
 import { Footer } from "./_components/home/footer";
 import { FloatingFab } from "./_components/home/floating-fab";
+import { RootFurtherDescription } from "./_components/home/root-further-description";
 import { CountdownTimer } from "./_components/home/countdown-timer";
 import { UserMenu } from "./_components/home/user-menu";
 import { NotificationBell } from "./_components/home/notification-bell";
@@ -54,6 +55,7 @@ export default async function HomePage() {
       />
       <main>
         <Hero countdownSlot={<CountdownTimer eventDateIso={eventDate?.toISOString() ?? null} />} />
+        <RootFurtherDescription />
         <AwardsGrid awards={awards} />
         <KudosSection receivedCount={kudosReceived} />
       </main>
