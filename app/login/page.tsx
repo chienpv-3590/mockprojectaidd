@@ -22,19 +22,20 @@ export default async function LoginPage({ searchParams }: Props) {
       className="relative isolate flex min-h-screen flex-col overflow-hidden text-white"
       style={{ backgroundColor: "#00101A" }}
     >
-      {/* Background painterly artwork (full-bleed) */}
+      {/* Background painterly artwork — cropped to right portion (text area
+          excluded to avoid ghost-text duplication when HTML text overlays). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-95"
+        className="pointer-events-none absolute inset-y-0 right-0 -z-20 w-[75%] bg-cover bg-right bg-no-repeat"
         style={{ backgroundImage: `url(${ASSETS}/background.jpg)` }}
       />
-      {/* Horizontal dark-to-transparent gradient (per design node 662:14392) */}
+      {/* Horizontal blend: dark navy left, transparent right (per design node 662:14392) */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(90deg, #00101A 0%, #00101A 25.41%, rgba(0,16,26,0) 100%)",
+            "linear-gradient(90deg, #00101A 0%, #00101A 30%, rgba(0,16,26,0) 65%)",
         }}
       />
       {/* Bottom dark cover gradient (per design node 662:14390) */}
@@ -43,7 +44,7 @@ export default async function LoginPage({ searchParams }: Props) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(0deg, #00101A 22.48%, rgba(0,19,32,0) 51.74%)",
+            "linear-gradient(0deg, #00101A 18%, rgba(0,19,32,0) 55%)",
         }}
       />
 
