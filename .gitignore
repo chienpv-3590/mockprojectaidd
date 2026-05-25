@@ -42,3 +42,6 @@ next-env.d.ts
 
 # mcp config (contains tokens)
 .mcp.json
+
+# transient test screenshots / playwright session artifacts (local only)
+plans/*/test-screenshots/
