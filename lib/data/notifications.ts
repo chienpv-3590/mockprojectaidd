@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppNotification } from "./types";
+import { isMissingTable } from "./errors";
 
 export async function getNotifications(
   supabase: SupabaseClient,
@@ -12,7 +13,10 @@ export async function getNotifications(
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return [];
+    throw error;
+  }
   return (data ?? []) as AppNotification[];
 }
 
@@ -22,7 +26,10 @@ export async function getUnreadCount(supabase: SupabaseClient, userId: string): 
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("read", false);
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return 0;
+    throw error;
+  }
   return count ?? 0;
 }
 
@@ -35,5 +42,8 @@ export async function markAllReadForUser(
     .update({ read: true })
     .eq("user_id", userId)
     .eq("read", false);
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return; // nothing to mark — table doesn't exist yet
+    throw error;
+  }
 }

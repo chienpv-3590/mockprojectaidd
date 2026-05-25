@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingTable } from "./errors";
 
 export async function getEventDate(supabase: SupabaseClient): Promise<Date | null> {
   const { data, error } = await supabase
@@ -6,7 +7,10 @@ export async function getEventDate(supabase: SupabaseClient): Promise<Date | nul
     .select("value")
     .eq("key", "saa_event_date")
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return null;
+    throw error;
+  }
   if (!data?.value) return null;
   const d = new Date(data.value);
   return isNaN(d.getTime()) ? null : d;

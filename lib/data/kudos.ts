@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingTable } from "./errors";
 
 export async function getReceivedCount(
   supabase: SupabaseClient,
@@ -8,6 +9,9 @@ export async function getReceivedCount(
     .from("kudos")
     .select("id", { count: "exact", head: true })
     .eq("to_user", userId);
-  if (error) throw error;
+  if (error) {
+    if (isMissingTable(error)) return 0;
+    throw error;
+  }
   return count ?? 0;
 }
