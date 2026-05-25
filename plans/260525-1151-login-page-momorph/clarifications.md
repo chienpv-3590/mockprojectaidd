@@ -17,3 +17,4 @@
 
 ## Session 2026-05-25 (post-forge fix)
 - Q: Background.jpg as full design preview caused ghost-text duplication — accept or fix? → A: Fix. Crop bg to right ~60% (artwork-only region, text excluded), pin to right side, left panel solid #00101A. Updated gradients (30% → 65% horizontal, 18% → 55% bottom) for cleaner blend.
+- Q: Page text used Geist (layout default), design uses Montserrat — fix? → A: Yes. Load Montserrat + Montserrat Alternates via next/font/google in layout.tsx (latin + vietnamese subsets), apply per-element styles from `get_node` on each TEXT node: welcome 20/40/0.5px, button 22/28/0, footer (Alternates) 16/24/0, VN 16/24/0.15px.

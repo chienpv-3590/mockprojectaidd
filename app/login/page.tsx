@@ -4,6 +4,10 @@ import { signInWithGoogle } from "./actions";
 
 const ASSETS = "/login";
 
+// Per-element typography from MoMorph design (nodes get_node verified).
+const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
+const FONT_MONTSERRAT_ALT = "var(--font-montserrat-alt), system-ui, sans-serif";
+
 const ERROR_MESSAGES: Record<string, string> = {
   auth_callback_failed: "Đăng nhập thất bại. Vui lòng thử lại.",
   oauth_init_failed: "Không thể khởi tạo đăng nhập Google. Vui lòng thử lại.",
@@ -60,7 +64,16 @@ export default async function LoginPage({ searchParams }: Props) {
             priority
             className="h-auto w-72 sm:w-96 lg:w-[28rem]"
           />
-          <p className="max-w-md text-sm leading-relaxed text-white/90 sm:text-base">
+          <p
+            className="max-w-lg text-white"
+            style={{
+              fontFamily: FONT_MONTSERRAT,
+              fontWeight: 700,
+              fontSize: "20px",
+              lineHeight: "40px",
+              letterSpacing: "0.5px",
+            }}
+          >
             Bắt đầu hành trình của bạn cùng SAA 2025.
             <br />
             Đăng nhập để khám phá!
@@ -103,7 +116,17 @@ function LanguageSwitcher() {
       className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-white/90 hover:bg-white/5 transition"
     >
       <Image src={`${ASSETS}/vn.svg`} alt="Vietnam flag" width={20} height={20} unoptimized className="h-5 w-5" />
-      <span>VN</span>
+      <span
+        style={{
+          fontFamily: FONT_MONTSERRAT,
+          fontWeight: 700,
+          fontSize: "16px",
+          lineHeight: "24px",
+          letterSpacing: "0.15px",
+        }}
+      >
+        VN
+      </span>
       <Image src={`${ASSETS}/down.svg`} alt="" width={16} height={16} unoptimized className="h-4 w-4 opacity-80" />
     </button>
   );
@@ -115,9 +138,15 @@ function GoogleLoginForm() {
       <button
         type="submit"
         data-testid="login-google"
-        className="group inline-flex w-fit items-center gap-3 rounded-md bg-[#FFD24C] px-6 py-3 text-sm font-semibold text-[#0a0a0a] shadow-md transition hover:bg-[#FFDD70] hover:shadow-lg active:bg-[#F5C12E] disabled:cursor-not-allowed disabled:opacity-70"
+        className="group inline-flex w-fit items-center gap-3 rounded-md bg-[#FFD24C] px-6 py-3 text-[#00101A] shadow-md transition hover:bg-[#FFDD70] hover:shadow-lg active:bg-[#F5C12E] disabled:cursor-not-allowed disabled:opacity-70"
+        style={{
+          fontFamily: FONT_MONTSERRAT,
+          fontWeight: 700,
+          fontSize: "22px",
+          lineHeight: "28px",
+        }}
       >
-        <span className="tracking-wide">LOGIN With Google</span>
+        <span>LOGIN With Google</span>
         <Image src={`${ASSETS}/google.svg`} alt="" width={20} height={20} unoptimized className="h-5 w-5" />
       </button>
     </form>
@@ -137,7 +166,15 @@ function ErrorBanner({ message }: { message: string }) {
 
 function Footer() {
   return (
-    <footer className="relative z-10 px-6 py-4 text-center text-xs text-white/70">
+    <footer
+      className="relative z-10 px-6 py-4 text-center text-white/70"
+      style={{
+        fontFamily: FONT_MONTSERRAT_ALT,
+        fontWeight: 700,
+        fontSize: "16px",
+        lineHeight: "24px",
+      }}
+    >
       Bản quyền thuộc về Sun* © 2025
     </footer>
   );
