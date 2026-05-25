@@ -14,3 +14,6 @@
 - Q: Background artwork fetchable from MoMorph? → A: No — nodes 662:14388 and 662:14389 returned HTTP 500. Workaround: used design preview render (preview.png) resized to background.jpg via imagemagick.
 - Q: Language switcher fully wired? → A: No — visual stub only (VN flag + chevron dropdown, non-functional). Wiring deferred to future i18n plan.
 - Q: Next.js 16 middleware convention? → A: middleware.ts → proxy.ts, function middleware() → proxy() per deprecation notice in AGENTS.md.
+
+## Session 2026-05-25 (post-forge fix)
+- Q: Background.jpg as full design preview caused ghost-text duplication — accept or fix? → A: Fix. Crop bg to right ~60% (artwork-only region, text excluded), pin to right side, left panel solid #00101A. Updated gradients (30% → 65% horizontal, 18% → 55% bottom) for cleaner blend.
