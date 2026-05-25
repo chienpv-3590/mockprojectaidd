@@ -26,11 +26,11 @@ export default async function LoginPage({ searchParams }: Props) {
       className="relative isolate flex min-h-screen flex-col overflow-hidden text-white"
       style={{ backgroundColor: "#00101A" }}
     >
-      {/* Background painterly artwork — cropped to right portion (text area
-          excluded to avoid ghost-text duplication when HTML text overlays). */}
+      {/* Background painterly artwork — cropped to artwork-only region of design
+          (text + header strip excluded to avoid ghost-element duplication). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 -z-20 w-[75%] bg-cover bg-right bg-no-repeat"
+        className="pointer-events-none absolute right-0 top-20 bottom-12 -z-20 w-[75%] bg-cover bg-right bg-no-repeat"
         style={{ backgroundImage: `url(${ASSETS}/background.jpg)` }}
       />
       {/* Horizontal blend: dark navy left, transparent right (per design node 662:14392) */}
