@@ -1,0 +1,19 @@
+{
+ "id": "I2167:9091;186:1597",
+ "name": null,
+ "type": null,
+ "styles": {
+  "gap": "8px",
+  "width": "40px",
+  "border": "1px solid var(--Details-Border, #998C5F)",
+  "height": "40px",
+  "zIndex": "1",
+  "display": "flex",
+  "padding": "10px",
+  "position": "absolute",
+  "background": "var(--Details-TextButton-Normal, rgba(0, 0, 0, 0.00))",
+  "align-items": "center",
+  "border-radius": "4px",
+  "justify-content": "center"
+ }
+}
