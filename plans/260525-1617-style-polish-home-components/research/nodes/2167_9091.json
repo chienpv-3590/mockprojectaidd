@@ -1,0 +1,20 @@
+{
+ "id": "2167:9091",
+ "name": null,
+ "type": null,
+ "styles": {
+  "gap": "238px",
+  "width": "1512px",
+  "height": "80px",
+  "zIndex": "1",
+  "display": "flex",
+  "padding": "12px 144px 12px 144px",
+  "position": "absolute",
+  "alignItems": "center",
+  "borderRadius": "0px",
+  "mixBlendMode": "pass-through",
+  "flexDirection": "row",
+  "justifyContent": "space-between",
+  "backgroundColor": "rgba(16, 20, 23, 0.800000011920929)"
+ }
+}

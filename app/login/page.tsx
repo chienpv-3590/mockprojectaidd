@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { signInWithGoogle } from "./actions";
+import { LanguageSwitcher } from "./_components/language-switcher";
+import { GoogleLoginButton } from "./_components/google-login-button";
+
+export const metadata: Metadata = {
+  title: "Đăng nhập",
+};
 
 const ASSETS = "/login";
 
@@ -106,49 +113,10 @@ function Header() {
   );
 }
 
-function LanguageSwitcher() {
-  // Visual stub only. Dropdown wiring deferred to a future i18n plan.
-  return (
-    <button
-      type="button"
-      aria-label="Change language"
-      aria-haspopup="listbox"
-      className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-white/90 hover:bg-white/5 transition"
-    >
-      <Image src={`${ASSETS}/vn.svg`} alt="Vietnam flag" width={20} height={20} unoptimized className="h-5 w-5" />
-      <span
-        style={{
-          fontFamily: FONT_MONTSERRAT,
-          fontWeight: 700,
-          fontSize: "16px",
-          lineHeight: "24px",
-          letterSpacing: "0.15px",
-        }}
-      >
-        VN
-      </span>
-      <Image src={`${ASSETS}/down.svg`} alt="" width={16} height={16} unoptimized className="h-4 w-4 opacity-80" />
-    </button>
-  );
-}
-
 function GoogleLoginForm() {
   return (
     <form action={signInWithGoogle} className="w-fit">
-      <button
-        type="submit"
-        data-testid="login-google"
-        className="group inline-flex w-fit items-center gap-3 rounded-md bg-[#FFD24C] px-6 py-3 text-[#00101A] shadow-md transition hover:bg-[#FFDD70] hover:shadow-lg active:bg-[#F5C12E] disabled:cursor-not-allowed disabled:opacity-70"
-        style={{
-          fontFamily: FONT_MONTSERRAT,
-          fontWeight: 700,
-          fontSize: "22px",
-          lineHeight: "28px",
-        }}
-      >
-        <span>LOGIN With Google</span>
-        <Image src={`${ASSETS}/google.svg`} alt="" width={20} height={20} unoptimized className="h-5 w-5" />
-      </button>
+      <GoogleLoginButton />
     </form>
   );
 }
@@ -167,7 +135,7 @@ function ErrorBanner({ message }: { message: string }) {
 function Footer() {
   return (
     <footer
-      className="relative z-10 px-6 py-4 text-center text-white/70"
+      className="fixed bottom-0 left-0 right-0 z-10 px-6 py-4 text-center text-white/70"
       style={{
         fontFamily: FONT_MONTSERRAT_ALT,
         fontWeight: 700,

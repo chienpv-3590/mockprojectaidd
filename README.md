@@ -41,6 +41,20 @@ This app uses Supabase Auth for Google sign-in.
 
 Without these, the dev server still boots but any auth code path throws on startup.
 
+## Database setup (Supabase schema + seed)
+
+The home page (`/`) reads awards, event date, notifications, and kudos from Supabase. Apply the schema + seed before running the app, or `/` will render empty sections.
+
+```bash
+# Open https://supabase.com/dashboard/project/<ref>/sql and run:
+#   1. supabase/migrations/0001_init_homepage.sql
+#   2. supabase/seed.sql
+# After your first Google sign-in, also run (per user, once):
+#   select public.seed_demo_data_for_current_user();
+```
+
+See `supabase/README.md` for full details (CLI and Studio paths).
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

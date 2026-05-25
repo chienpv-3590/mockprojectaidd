@@ -1,0 +1,19 @@
+{
+ "id": "2167:9030",
+ "name": null,
+ "type": null,
+ "styles": {
+  "gap": "120px",
+  "width": "1512px",
+  "height": "4220px",
+  "zIndex": "1",
+  "display": "flex",
+  "padding": "96px 144px 96px 144px",
+  "position": "absolute",
+  "alignItems": "center",
+  "borderRadius": "0px",
+  "mixBlendMode": "pass-through",
+  "flexDirection": "column",
+  "justifyContent": "center"
+ }
+}
