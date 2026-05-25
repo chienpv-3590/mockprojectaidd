@@ -10,7 +10,7 @@ values
   ('top-project',        'Top Project',            'Dự án nổi bật mang lại giá trị cao',            '/home/awards/top-project.png',        2),
   ('top-project-leader', 'Top Project Leader',     'Người dẫn dắt dự án xuất sắc',                  '/home/awards/top-project-leader.png', 3),
   ('best-manager',       'Best Manager',           'Nhà quản lý của năm',                           '/home/awards/best-manager.png',       4),
-  ('signature-creator',  'Signature 2025 Creator', 'Người sáng tạo dấu ấn năm 2025',                '/home/awards/signature-creator.png',  5),
+  ('signature-creator',  'Signature 2025 Creator', 'Người sáng tạo dấu ấn năm 2025',                '/home/awards/signature-2025-creator.png',  5),
   ('mvp',                'MVP',                    'Most Valuable Person — người có đóng góp lớn nhất', '/home/awards/mvp.png',           6)
 on conflict (code) do update set
   title_vi       = excluded.title_vi,
