@@ -81,7 +81,7 @@ export function Hero({ countdownSlot }: HeroProps) {
 
         <div className="flex flex-wrap items-start gap-6">
           <Link
-            href="#"
+            href="/he-thong-giai"
             className="inline-flex h-[60px] min-w-[276px] items-center justify-between rounded-lg px-6 py-4 text-[#00101A] shadow-md transition hover:brightness-105 hover:shadow-lg"
             style={{ ...CTA_LABEL_STYLE, backgroundColor: CTA_YELLOW }}
           >
@@ -89,7 +89,7 @@ export function Hero({ countdownSlot }: HeroProps) {
             <ArrowIcon color="#00101A" />
           </Link>
           <Link
-            href="#"
+            href="/sun-kudos"
             className="inline-flex h-[60px] min-w-[276px] items-center justify-between rounded-lg px-6 py-4 transition hover:bg-white/5"
             style={{
               ...CTA_LABEL_STYLE,

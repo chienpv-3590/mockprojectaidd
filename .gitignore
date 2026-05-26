@@ -45,3 +45,19 @@ next-env.d.ts
 
 # transient test screenshots / playwright session artifacts (local only)
 plans/*/test-screenshots/
+
+# local agent config
+.claude/
+
+# MCP browser artifacts
+.playwright-mcp/
+
+# Playwright test reports and results
+playwright-report/
+test-results/
+
+# agent journal scratch
+docs/journals/
+
+# auto-generated build artifacts
+release-manifest.json

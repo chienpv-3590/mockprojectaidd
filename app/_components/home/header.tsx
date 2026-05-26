@@ -1,9 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { NavLinks } from "./nav-links";
-
-const ASSETS = "/home";
+import { HomeLogoLink } from "./home-logo-link";
 
 type HeaderProps = {
   languageSlot?: ReactNode;
@@ -18,16 +15,7 @@ export function Header({ languageSlot, notificationSlot, userSlot }: HeaderProps
       style={{ backgroundColor: "rgba(0, 16, 26, 0.6)" }}
     >
       <div className="flex items-center gap-10">
-        <Link href="/" aria-label="Sun* Annual Awards 2025 — Home" className="shrink-0">
-          <Image
-            src={`${ASSETS}/logo.png`}
-            alt="Sun* Annual Awards 2025"
-            width={52}
-            height={48}
-            priority
-            className="h-12 w-auto"
-          />
-        </Link>
+        <HomeLogoLink size="header" />
         <NavLinks />
       </div>
       <div className="flex items-center gap-2 sm:gap-3">

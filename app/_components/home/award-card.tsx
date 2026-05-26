@@ -23,7 +23,7 @@ export function AwardCard({ award }: { award: Award }) {
   return (
     <article className="group flex flex-col gap-4">
       <Link
-        href={`#${award.code}`}
+        href={`/he-thong-giai#${award.code}`}
         className="relative block aspect-square w-full overflow-hidden rounded-lg transition group-hover:-translate-y-1"
       >
         <Image
@@ -46,14 +46,14 @@ export function AwardCard({ award }: { award: Award }) {
         )}
       </Link>
       <div className="flex flex-col gap-2 text-white">
-        <Link href={`#${award.code}`} className="text-white transition hover:text-[#FFEA9E]" style={TITLE_STYLE}>
+        <Link href={`/he-thong-giai#${award.code}`} className="text-white transition hover:text-[#FFEA9E]" style={TITLE_STYLE}>
           {award.title_vi}
         </Link>
         <p className="line-clamp-2 text-white/70" style={DESC_STYLE}>
           {award.description_vi}
         </p>
         <Link
-          href={`#${award.code}`}
+          href={`/he-thong-giai#${award.code}`}
           aria-label={`Chi tiết — ${award.title_vi}`}
           className="mt-1 inline-flex w-fit items-center gap-1.5 text-[#FFEA9E] transition hover:text-[#FFDD70]"
           style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 600, fontSize: "14px" }}
