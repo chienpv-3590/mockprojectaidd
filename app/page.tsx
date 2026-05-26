@@ -6,7 +6,7 @@ import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
 import { Header } from "./_components/home/header";
 import { Hero } from "./_components/home/hero";
 import { AwardsGrid } from "./_components/home/awards-grid";
-import { KudosSection } from "./_components/home/kudos-section";
+import { KudosBanner } from "./_components/shared/kudos-banner";
 import { Footer } from "./_components/home/footer";
 import { FloatingFab } from "./_components/home/floating-fab";
 import { RootFurtherDescription } from "./_components/home/root-further-description";
@@ -65,7 +65,7 @@ export default async function HomePage() {
           <RootFurtherDescription />
         </div>
         <AwardsGrid awards={awards} />
-        <KudosSection />
+        <KudosBanner href="/sun-kudos" />
       </main>
       <Footer />
       <FloatingFab />

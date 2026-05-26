@@ -1,5 +1,5 @@
 export type AwardValueBreakdown = {
-  label: string;
+  label: string | null;
   amount_text: string;
 };
 

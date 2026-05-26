@@ -18,7 +18,8 @@ values
     '/home/awards/top-talent.png',
     1,
     'Giải thưởng Top Talent vinh danh những cá nhân xuất sắc toàn diện – những người không ngừng khẳng định năng lực chuyên môn vững vàng, hiệu suất công việc vượt trội, luôn mang lại giá trị vượt kỳ vọng. Được đánh giá cao bởi khách hàng và đồng đội, họ luôn là nguồn cảm hứng, thúc đẩy động lực và tạo ảnh hưởng tích cực đến cả tập thể.',
-    '10', 'Cá nhân', '7.000.000 VNĐ', null
+    '10', 'Cá nhân', null,
+    '[{"label": "cho mỗi giải thưởng", "amount_text": "7.000.000 VNĐ"}]'::jsonb
   ),
   (
     'top-project',
@@ -27,7 +28,8 @@ values
     '/home/awards/top-project.png',
     2,
     'Giải thưởng Top Project vinh danh các tập thể dự án xuất sắc với kết quả kinh doanh vượt kỳ vọng, hiệu quả vận hành tối ưu và tinh thần làm việc tận tâm. Đây là các dự án có độ phức tạp kỹ thuật cao, hiệu quả tối ưu hóa nguồn lực và chi phí tốt, mang lại giá trị cho khách hàng, đem lại lợi nhuận vượt trội và nhận được phản hồi tích cực từ khách hàng. Các thành viên tuân thủ nghiêm ngặt các tiêu chuẩn phát triển nội bộ, tạo nên một hình mẫu về sự xuất sắc và chuyên nghiệp.',
-    '02', 'Tập thể', '15.000.000 VNĐ', null
+    '02', 'Tập thể', null,
+    '[{"label": "cho mỗi giải thưởng", "amount_text": "15.000.000 VNĐ"}]'::jsonb
   ),
   (
     'top-project-leader',
@@ -36,7 +38,8 @@ values
     '/home/awards/top-project-leader.png',
     3,
     'Giải thưởng Top Project Leader vinh danh những nhà quản lý dự án xuất sắc – những người hội tụ năng lực quản lý vững vàng, khả năng truyền cảm hứng mạnh mẽ và tư duy "Aim High – Be Agile" trong mọi bài toán và bối cảnh. Dưới sự dẫn dắt của họ, các thành viên không chỉ cùng nhau vượt qua thử thách và đạt được mục tiêu đề ra, mà còn giữ vững ngọn lửa nhiệt huyết, tinh thần Wasshoi, và trưởng thành để trở thành phiên bản tốt hơn — hạnh phúc hơn của chính mình.',
-    '03', 'Cá nhân', '7.000.000 VNĐ', null
+    '03', 'Cá nhân', null,
+    '[{"label": "cho mỗi giải thưởng", "amount_text": "7.000.000 VNĐ"}]'::jsonb
   ),
   (
     'best-manager',
@@ -45,7 +48,8 @@ values
     '/home/awards/best-manager.png',
     4,
     'Giải thưởng Best Manager vinh danh những nhà lãnh đạo tiêu biểu — người đã dẫn dắt đội ngũ của mình tạo ra kết quả vượt kỳ vọng, tác động trực tiếp tới hiệu quả kinh doanh và sự phát triển bền vững của tổ chức. Dưới sự lãnh đạo của họ, đội ngũ luôn chinh phục mọi thử thách và phát huy hết tinh thần trách nhiệm, khả năng phối hợp hiệu quả, và tư duy ứng dụng công nghệ trong công việc. Họ truyền cảm hứng để tập thể trở nên tự tin, tràn đầy năng lượng, sẵn sàng đón nhận, thậm chí dẫn dắt tạo ra những thay đổi có tính cách mạng.',
-    '01', 'Cá nhân', '10.000.000 VNĐ', null
+    '01', 'Cá nhân', null,
+    '[{"label": null, "amount_text": "10.000.000 VNĐ"}]'::jsonb
   ),
   (
     'signature-creator',
@@ -64,7 +68,8 @@ values
     '/home/awards/mvp.png',
     6,
     'Giải thưởng MVP vinh danh cá nhân xuất sắc nhất năm — gương mặt tiêu biểu đại diện cho toàn bộ tập thể Sun*. Họ là người đã thể hiện năng lực vượt trội, tinh thần cống hiến bền bỉ, và tầm ảnh hưởng sâu rộng, để lại dấu ấn đậm nét trong hành trình của Sun* suốt năm qua. Không chỉ nổi bật bởi hiệu suất và kết quả công việc, họ còn là nguồn cảm hứng lan tỏa – thông qua suy nghĩ, hành động và ảnh hưởng tích cực của cá nhân đối với tập thể. MVP là người hội tụ đầy đủ phẩm chất của một người Sun*: vai trò, đóng góp mạnh trên mọi trạng thái, lan tỏa trở thành hình mẫu đại diện cho con người và văn hóa Sun*, góp phần dẫn dắt tập thể vươn tới những đỉnh cao mới.',
-    '01', 'Cá nhân', '15.000.000 VNĐ', null
+    '01', 'Cá nhân', null,
+    '[{"label": null, "amount_text": "15.000.000 VNĐ"}]'::jsonb
   )
 on conflict (code) do update set
   title_vi            = excluded.title_vi,
