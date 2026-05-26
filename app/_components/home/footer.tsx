@@ -7,8 +7,8 @@ const FONT_MONTSERRAT_ALT = "var(--font-montserrat-alt), system-ui, sans-serif";
 
 const FOOTER_LINKS = [
   { label: "About SAA 2025", href: "#" },
-  { label: "Awards Information", href: "#" },
-  { label: "Sun* Kudos", href: "#" },
+  { label: "Awards Information", href: "/he-thong-giai" },
+  { label: "Sun* Kudos", href: "/sun-kudos" },
   { label: "Tiêu chuẩn chung", href: "#" },
 ];
 
