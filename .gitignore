@@ -64,3 +64,11 @@ release-manifest.json
 
 # plan artifacts — not part of source
 /plans/
+
+# throwaway debug screenshots
+/login-page.png
+/spotlight-after.png
+/spotlight-v2.png
+
+# local design-data cache
+.momorph/

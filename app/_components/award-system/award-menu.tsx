@@ -44,10 +44,14 @@ export function AwardMenu({ awards }: AwardMenuProps) {
         const top = el.getBoundingClientRect().top;
         if (top - ACTIVATION_OFFSET <= 0) current = award.code;
       }
-      // Last card stays active once we hit page bottom.
+      // Last card stays active once we hit page bottom — but only after the
+      // user has actually scrolled. Without the scrollY guard the check would
+      // fire on initial mount whenever scrollHeight ≤ innerHeight (short page,
+      // images still loading, jsdom), forcing the last award active at top.
       if (
+        window.scrollY > 0 &&
         window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 4
+          document.documentElement.scrollHeight - 4
       ) {
         const last = awards[awards.length - 1]?.code;
         if (last) current = last;

@@ -325,7 +325,7 @@ test.describe("/he-thong-giai — design compliance", () => {
     await expect(cta).toContainText("Chi tiết");
   });
 
-  test("kudos banner — clicking 'Chi tiết' navigates to /sun-kudos placeholder", async ({
+  test("kudos banner — clicking 'Chi tiết' navigates to /sun-kudos Live Board", async ({
     page,
   }) => {
     await page
@@ -334,8 +334,10 @@ test.describe("/he-thong-giai — design compliance", () => {
       )
       .click();
     await expect(page).toHaveURL(/\/sun-kudos$/);
-    await expect(page.locator("h1")).toContainText("Sun* Kudos");
-    await expect(page.getByText(/Coming soon/i)).toBeVisible();
+    // /sun-kudos is now the full Live Board (the placeholder was replaced).
+    await expect(page.locator("#kudos-hero-heading")).toContainText(
+      "Hệ thống ghi nhận và cảm ơn"
+    );
   });
 
   test("page has no console errors on load", async ({ page }) => {

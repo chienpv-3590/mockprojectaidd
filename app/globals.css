@@ -31,3 +31,41 @@ body {
     display: none;
   }
 }
+
+/* SPOTLIGHT BOARD (B.7) — Sunner names drift gently like points of light.
+   Each name carries its own --float-amp / duration / delay so the cloud breathes
+   organically instead of moving in lockstep. Frozen for reduced-motion users. */
+@keyframes kudos-spotlight-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(var(--float-amp, -5px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kudos-spotlight-word {
+    animation: none !important;
+  }
+}
+
+/* Thin gold scrollbar — used by the sidebar "10 Sunner nhận quà" list (D.3). */
+@utility kudos-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 234, 158, 0.4) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 234, 158, 0.35);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 234, 158, 0.55);
+  }
+}
