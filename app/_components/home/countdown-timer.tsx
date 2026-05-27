@@ -25,9 +25,19 @@ function computeRemaining(iso: string | null): Remaining {
 }
 
 export function CountdownTimer({ eventDateIso }: CountdownTimerProps) {
-  const [remaining, setRemaining] = useState<Remaining>(() => computeRemaining(eventDateIso));
+  // Start from a deterministic value (zeros) so the server render and the first
+  // client render match — computing from Date.now() during the initial render
+  // would mismatch whenever a minute/hour/day boundary is crossed between SSR
+  // and hydration, triggering a React hydration error. The real remaining time
+  // is filled in right after mount, then ticked every minute.
+  const [remaining, setRemaining] = useState<Remaining>({ d: 0, h: 0, m: 0 });
 
   useEffect(() => {
+    // Intentional post-hydration sync: the initial state is zeros (to match SSR),
+    // so we must compute the real value once on mount. This deliberate setState
+    // is the documented client-only-value pattern, not an accidental loop.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemaining(computeRemaining(eventDateIso));
     const id = setInterval(() => setRemaining(computeRemaining(eventDateIso)), 60_000);
     return () => clearInterval(id);
   }, [eventDateIso]);

@@ -1,11 +1,21 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
+import { getProfile, getProfileStats } from "@/lib/data/profile";
+import { getSecretBoxCounts, listRecentRecipients } from "@/lib/data/secret-boxes";
+import { listFeatureHashtags, listSmallHashtags } from "@/lib/data/hashtags";
+import { listDepartments } from "@/lib/data/departments";
+import { getHighlightKudos, getAllKudos } from "@/lib/data/kudos-feed";
+import { getSpotlightRecipients, getTotalKudosCount } from "@/lib/data/spotlight";
 import { Header } from "@/app/_components/home/header";
 import { Footer } from "@/app/_components/home/footer";
 import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
 import { NotificationBell } from "@/app/_components/home/notification-bell";
 import { UserMenu } from "@/app/_components/home/user-menu";
+import { LiveBoardClient } from "@/app/_components/sun-kudos/live-board-client";
+import type { LiveBoardInitialData } from "@/app/_components/sun-kudos/live-board-client";
+import type { SidebarStats } from "@/app/_components/sun-kudos/types";
+import { adaptSecretBoxRecipient } from "@/app/_components/sun-kudos/_lib/kudos-adapter";
 
 export const metadata = { title: "Sun* Kudos — SAA 2025" };
 
@@ -16,15 +26,62 @@ export default async function SunKudosPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/sun-kudos");
 
-  const [notifications, unreadCount] = await Promise.all([
+  // Parallel-fetch all data needed for the initial render
+  const [
+    notifications,
+    unreadCount,
+    profile,
+    profileStats,
+    secretBoxCounts,
+    recentRecipients,
+    featureHashtags,
+    smallHashtags,
+    departments,
+    highlightRows,
+    feedResult,
+    spotlightNodes,
+    totalKudos,
+  ] = await Promise.all([
     getNotifications(supabase, user.id, 10),
     getUnreadCount(supabase, user.id),
+    getProfile(supabase, user.id),
+    getProfileStats(supabase, user.id),
+    getSecretBoxCounts(supabase, user.id),
+    listRecentRecipients(supabase, 10),
+    listFeatureHashtags(supabase),
+    listSmallHashtags(supabase),
+    listDepartments(supabase),
+    getHighlightKudos(supabase, undefined),
+    getAllKudos(supabase, undefined, 10, undefined),
+    getSpotlightRecipients(supabase),
+    getTotalKudosCount(supabase),
   ]);
 
+  const stats: SidebarStats = {
+    kudosReceived: profileStats.received,
+    kudosSent: profileStats.sent,
+    hearts: profileStats.hearts,
+    secretBoxOpened: secretBoxCounts.opened,
+    secretBoxPending: secretBoxCounts.unopened,
+  };
+
+  const initial: LiveBoardInitialData = {
+    highlightRows,
+    feedRows: feedResult.rows,
+    feedNextCursor: feedResult.nextCursor,
+    stats,
+    recipients: recentRecipients.map(adaptSecretBoxRecipient),
+    spotlightNodes,
+    totalKudos, // global count(*) from kudos — per Spotlight B.7.1 spec
+    featureHashtags,
+    smallHashtags,
+    departments,
+  };
+
   const userProps = {
-    name: user.user_metadata?.full_name ?? user.email ?? "Người dùng",
+    name: profile?.full_name_vi ?? user.user_metadata?.full_name ?? user.email ?? "Người dùng",
     email: user.email ?? "",
-    avatarUrl: user.user_metadata?.avatar_url ?? null,
+    avatarUrl: profile?.avatar_url ?? user.user_metadata?.avatar_url ?? null,
   };
 
   return (
@@ -39,20 +96,11 @@ export default async function SunKudosPage() {
         }
         userSlot={<UserMenu user={userProps} />}
       />
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-32 text-center text-white">
-        <h1
-          className="text-4xl font-bold text-[#FFEA9E] sm:text-5xl"
-          style={{ fontFamily: "var(--font-montserrat), system-ui, sans-serif" }}
-        >
-          Sun* Kudos
-        </h1>
-        <p
-          className="mt-6 max-w-xl text-base text-white/70 sm:text-lg"
-          style={{ fontFamily: "var(--font-montserrat), system-ui, sans-serif" }}
-        >
-          Coming soon — chi tiết về phong trào ghi nhận Sun* Kudos sẽ sớm có mặt.
-        </p>
+
+      <main className="flex-1">
+        <LiveBoardClient initial={initial} currentUserId={user.id} />
       </main>
+
       <Footer />
     </div>
   );
