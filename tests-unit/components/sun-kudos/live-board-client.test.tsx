@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Module mocks — must be declared before imports that consume them
@@ -41,7 +42,7 @@ const mockToggleHeart = vi.fn();
 const mockOpenSecretBox = vi.fn();
 const mockGetNextUnopenedBox = vi.fn();
 
-vi.mock("@/app/sun-kudos/actions", () => ({
+vi.mock("@/app/_actions/sun-kudos", () => ({
   fetchKudosCard: (...args: unknown[]) => mockFetchKudosCard(...args),
   refetchHighlight: (...args: unknown[]) => mockRefetchHighlight(...args),
   refetchFeed: (...args: unknown[]) => mockRefetchFeed(...args),
@@ -52,9 +53,12 @@ vi.mock("@/app/sun-kudos/actions", () => ({
   getNextUnopenedBox: (...args: unknown[]) => mockGetNextUnopenedBox(...args),
 }));
 
-// Storage
+// Storage (the `mock` prefix lets vitest reference it inside the hoisted factory)
+const mockUploadKudosImage = vi
+  .fn()
+  .mockResolvedValue({ path: "user-1/upload.jpg" });
 vi.mock("@/lib/storage/kudos-images", () => ({
-  uploadKudosImage: vi.fn().mockResolvedValue({ path: "temp/upload.jpg" }),
+  uploadKudosImage: (...args: unknown[]) => mockUploadKudosImage(...args),
 }));
 
 // Realtime channel — prevents real Supabase subscriptions
@@ -74,7 +78,6 @@ vi.mock("@/app/_components/sun-kudos/highlight-carousel", () => ({
     selectedDepartmentCode?: string;
     onSelectHashtag?: (id: string | null) => void;
     onSelectDepartment?: (code: string | null) => void;
-    onClearFilters?: () => void;
     onHeartToggle?: (id: string) => void;
   }) => (
     <div
@@ -95,11 +98,13 @@ vi.mock("@/app/_components/sun-kudos/highlight-carousel", () => ({
       >
         filter-dept
       </button>
+      {/* Re-clicking the active dropdown option clears the filter
+          (FilterDropdown contract). This test button simulates that path. */}
       <button
-        data-testid="clear-filter-btn"
-        onClick={() => props.onClearFilters?.()}
+        data-testid="clear-hashtag-btn"
+        onClick={() => props.onSelectHashtag?.(null)}
       >
-        clear-filter
+        clear-hashtag
       </button>
       <button
         data-testid="highlight-heart-btn"
@@ -140,6 +145,7 @@ vi.mock("@/app/_components/sun-kudos/kudos-feed", () => ({
     initialKudos?: { id: string }[];
     onLoadMore?: () => void;
     onHeartToggle?: (id: string) => void;
+    onViewDetail?: (id: string) => void;
   }) => (
     <div data-testid="kudos-feed" data-count={props.initialKudos?.length ?? 0}>
       <button
@@ -154,6 +160,12 @@ vi.mock("@/app/_components/sun-kudos/kudos-feed", () => ({
       >
         heart-feed
       </button>
+      <button
+        data-testid="feed-view-btn"
+        onClick={() => props.onViewDetail?.("card-f1")}
+      >
+        view-feed
+      </button>
     </div>
   ),
 }));
@@ -162,52 +174,65 @@ vi.mock("@/app/_components/sun-kudos/kudos-feed", () => ({
 // rejections. This mirrors what the real dialog does (sets submitting=false on
 // catch). A separate data-testid="submit-error-status" element surfaces the
 // error so tests can assert on it when needed.
-vi.mock("@/app/_components/sun-kudos/submit-kudos-dialog", () => {
-  const { useState } = require("react");
-  return {
-    SubmitKudosDialog: (props: {
-      open?: boolean;
-      onClose?: () => void;
-      onSubmit?: (input: {
-        to_user: string;
-        message: string;
-        feature_hashtag_id: string;
-        small_hashtag_ids: string[];
-        image_paths: string[];
-      }) => Promise<void>;
-    }) => {
-      const [lastError, setLastError] = useState<string | null>(null);
-      if (!props.open) return null;
-      const handleSubmit = async () => {
-        setLastError(null);
-        try {
-          await props.onSubmit?.({
-            to_user: "user-target",
-            message: "Thanks!",
-            feature_hashtag_id: "fh-1",
-            small_hashtag_ids: [],
-            image_paths: [],
-          });
-        } catch (err: unknown) {
-          setLastError(err instanceof Error ? err.message : "error");
-        }
-      };
-      return (
-        <div data-testid="submit-dialog">
-          <button data-testid="dialog-close-btn" onClick={() => props.onClose?.()}>
-            close
-          </button>
-          <button data-testid="dialog-submit-btn" onClick={handleSubmit}>
-            submit
-          </button>
-          {lastError && (
-            <span data-testid="submit-error-status">{lastError}</span>
-          )}
-        </div>
-      );
-    },
-  };
-});
+//
+// Note: useState is imported from React directly (not via require) so that
+// TypeScript can resolve the generic overloads.
+vi.mock("@/app/_components/sun-kudos/submit-kudos-dialog", () => ({
+  SubmitKudosDialog: (props: {
+    open?: boolean;
+    onClose?: () => void;
+    onUpload?: (file: File) => Promise<string>;
+    onSubmit?: (input: {
+      to_user: string;
+      message: string;
+      feature_hashtag_id: string;
+      small_hashtag_ids: string[];
+      image_paths: string[];
+    }) => Promise<void>;
+  }) => {
+    const [lastError, setLastError] = React.useState<string | null>(null);
+    const [uploadedPath, setUploadedPath] = React.useState<string | null>(null);
+    if (!props.open) return null;
+    const handleUpload = async () => {
+      const file = new File(["x"], "pic.png", { type: "image/png" });
+      const path = await props.onUpload?.(file);
+      setUploadedPath(path ?? null);
+    };
+    const handleSubmit = async () => {
+      setLastError(null);
+      try {
+        await props.onSubmit?.({
+          to_user: "user-target",
+          message: "Thanks!",
+          feature_hashtag_id: "fh-1",
+          small_hashtag_ids: [],
+          image_paths: [],
+        });
+      } catch (err: unknown) {
+        setLastError(err instanceof Error ? err.message : "error");
+      }
+    };
+    return (
+      <div data-testid="submit-dialog">
+        <button data-testid="dialog-close-btn" onClick={() => props.onClose?.()}>
+          close
+        </button>
+        <button data-testid="dialog-submit-btn" onClick={handleSubmit}>
+          submit
+        </button>
+        <button data-testid="dialog-upload-btn" onClick={handleUpload}>
+          upload
+        </button>
+        {uploadedPath && (
+          <span data-testid="uploaded-path">{uploadedPath}</span>
+        )}
+        {lastError && (
+          <span data-testid="submit-error-status">{lastError}</span>
+        )}
+      </div>
+    );
+  },
+}));
 
 vi.mock("@/app/_components/sun-kudos/kudos-sidebar", () => ({
   KudosSidebar: (props: {
@@ -244,6 +269,8 @@ function buildDbCard(over: Partial<DbCard> = {}): DbCard {
   return {
     id: "card-1",
     message: "Great work!",
+    title: null,
+    is_anonymous: false,
     created_at: "2026-05-26T08:00:00.000Z",
     sender: {
       user_id: "user-s",
@@ -399,6 +426,37 @@ describe("<LiveBoardClient />", () => {
     });
   });
 
+  // ── Test 4b: image upload uses the uploader's UID as the storage path ─────
+  //
+  // Regression: the upload previously hard-coded "temp" as the path prefix,
+  // which the kudos-images storage RLS INSERT policy rejects (it requires
+  // auth.uid() = first path segment). The prefix MUST be currentUserId.
+  it("dialog image upload passes currentUserId as the storage path prefix", async () => {
+    render(<LiveBoardClient initial={baseInitial()} currentUserId="user-1" />);
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Hôm nay, bạn muốn gửi lời cảm ơn và ghi nhận đến ai?",
+      })
+    );
+
+    await userEvent.click(screen.getByTestId("dialog-upload-btn"));
+
+    await waitFor(() => {
+      expect(mockUploadKudosImage).toHaveBeenCalledTimes(1);
+    });
+    // signature: (supabase, kudosId/prefix, buffer, contentType)
+    const [, prefix, , contentType] = mockUploadKudosImage.mock.calls[0];
+    expect(prefix).toBe("user-1");
+    expect(prefix).not.toBe("temp");
+    expect(contentType).toBe("image/png");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("uploaded-path")).toHaveTextContent(
+        "user-1/upload.jpg"
+      );
+    });
+  });
+
   // ── Test 5: submitKudos error → error surfaced in dialog stub ─────────────
   //
   // handleSubmitKudos() in the orchestrator does NOT call showToast on error —
@@ -487,12 +545,12 @@ describe("<LiveBoardClient />", () => {
     });
   });
 
-  // ── Test 9b: clear filters → re-fetches with no filters ──────────────────
-  it("clear-filter button re-fetches highlight + feed with no filters", async () => {
+  // ── Test 9b: re-selecting the active hashtag clears it → re-fetches with no filters ──
+  it("clearing the hashtag (onSelectHashtag(null)) re-fetches highlight + feed without filters", async () => {
     render(<LiveBoardClient initial={baseInitial()} currentUserId="user-1" />);
-    // Apply a hashtag filter first, then clear it.
+    // Apply a hashtag filter first, then clear it via the dropdown contract.
     await userEvent.click(screen.getByTestId("filter-btn"));
-    await userEvent.click(screen.getByTestId("clear-filter-btn"));
+    await userEvent.click(screen.getByTestId("clear-hashtag-btn"));
 
     await waitFor(() => {
       expect(mockRefetchHighlight).toHaveBeenLastCalledWith(undefined);
@@ -513,8 +571,8 @@ describe("<LiveBoardClient />", () => {
     });
   });
 
-  // ── Test 11a: spotlight node click with latest_kudos_id → Kudos detail ────
-  it("spotlight node click with latest_kudos_id pushes to /sun-kudos/:kudosId", async () => {
+  // ── Test 11a: spotlight node click → always navigates to the user's profile
+  it("spotlight node click navigates to /sun-kudos/profile/{user_id} (even when latest_kudos_id is set)", async () => {
     const initial = baseInitial();
     initial.spotlightNodes = [
       {
@@ -529,11 +587,26 @@ describe("<LiveBoardClient />", () => {
     render(<LiveBoardClient initial={initial} currentUserId="user-1" />);
     await userEvent.click(screen.getByTestId("node-u-spot"));
 
-    expect(mockRouterPush).toHaveBeenCalledWith("/sun-kudos/kudos-latest-99");
+    expect(mockRouterPush).toHaveBeenCalledWith("/sun-kudos/profile/u-spot");
+    // Must NOT open the detail popup for the latest kudos.
+    expect(mockFetchKudosCard).not.toHaveBeenCalledWith("kudos-latest-99");
   });
 
-  // ── Test 11b: spotlight node click without latest_kudos_id → profile fallback
-  it("spotlight node click without latest_kudos_id falls back to profile", async () => {
+  // ── Test 11c: feed card view → opens detail popup (no navigation) ─────────
+  it("feed card onViewDetail fetches the card for the popup (no navigation)", async () => {
+    mockFetchKudosCard.mockResolvedValue(null);
+
+    render(<LiveBoardClient initial={baseInitial()} currentUserId="user-1" />);
+    await userEvent.click(screen.getByTestId("feed-view-btn"));
+
+    await waitFor(() => {
+      expect(mockFetchKudosCard).toHaveBeenCalledWith("card-f1");
+    });
+    expect(mockRouterPush).not.toHaveBeenCalledWith("/sun-kudos/card-f1");
+  });
+
+  // ── Test 11b: spotlight node click also navigates to profile when latest_kudos_id is null
+  it("spotlight node click without latest_kudos_id still navigates to profile", async () => {
     const initial = baseInitial();
     initial.spotlightNodes = [
       {

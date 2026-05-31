@@ -9,19 +9,34 @@
 import type { KudosCardData as DbKudosCard, UserProfile } from "@/lib/data/types";
 import type { KudosCardData as UIKudosCard, KudosUser, SecretBoxRecipient } from "../types";
 
-/** Format ISO timestamp → "HH:MM - DD/MM/YYYY" for display. */
+/**
+ * Format ISO timestamp → "HH:MM - DD/MM/YYYY" in Vietnam time (UTC+7).
+ *
+ * The formatter pins an explicit `timeZone` so the output is byte-identical on
+ * the server and in the browser. This adapter runs inside client components
+ * (initial `useState` + realtime updates), so timezone-local getters
+ * (getHours/getDate/…) would format UTC during SSR but local time during
+ * hydration — a React hydration mismatch that surfaces as
+ * "Failed to execute 'measure' on 'Performance': '<Component>' cannot have a
+ * negative time stamp" via React's dev performance track. A fixed `timeZone`
+ * keeps both render passes deterministic and shows the intended local time.
+ */
+const createdAtFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 function formatCreatedAt(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mo = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    return `${hh}:${mm} - ${dd}/${mo}/${yyyy}`;
-  } catch {
-    return iso;
-  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const parts: Record<string, string> = {};
+  for (const p of createdAtFormatter.formatToParts(d)) parts[p.type] = p.value;
+  return `${parts.hour}:${parts.minute} - ${parts.day}/${parts.month}/${parts.year}`;
 }
 
 function toKudosUser(profile: UserProfile): KudosUser {

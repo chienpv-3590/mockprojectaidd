@@ -77,6 +77,7 @@ function buildNode(over: Partial<SpotlightNode> = {}): SpotlightNode {
     name: "Nguyen Van A",
     received_count: 10,
     last_received_at: "2026-05-15T08:30:00",
+    latest_kudos_id: null,
     ...over,
   };
 }
@@ -206,6 +207,51 @@ describe("<SpotlightContainer />", () => {
     expect(
       screen.getByRole("button", { name: "Bật chế độ Pan và Zoom" })
     ).toBeInTheDocument();
+  });
+
+  // --- Pan/Zoom hover tooltip (per spec B.7.2) ----------------------------
+  it("shows a 'Pan/Zoom' tooltip linked via aria-describedby when hovering the button", async () => {
+    const user = userEvent.setup();
+    render(<SpotlightContainer {...defaultProps} />);
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+
+    const btn = screen.getByRole("button", { name: "Tắt chế độ Pan và Zoom" });
+    expect(btn).not.toHaveAttribute("aria-describedby");
+
+    await user.hover(btn);
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent("Pan/Zoom");
+    // ARIA contract: button must reference the tooltip via aria-describedby
+    expect(btn).toHaveAttribute("aria-describedby", tooltip.id);
+
+    await user.unhover(btn);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(btn).not.toHaveAttribute("aria-describedby");
+  });
+
+  // --- Search input focus border (per spec B.7.3) -------------------------
+  it("applies a gold focus border to the search input on focus", () => {
+    render(<SpotlightContainer {...defaultProps} />);
+
+    const input = screen.getByPlaceholderText("Tìm kiếm");
+    const label = input.closest("label") as HTMLLabelElement;
+    expect(label).not.toBeNull();
+
+    // JSDOM normalizes inline styles: spaces are added after commas, and hex
+    // colors are converted to rgb(). Match on the distinctive color portion.
+    const mutedBorder = /rgba\(\s*255,\s*255,\s*255,\s*0\.15\s*\)/;
+    const goldBorder = /(?:#FFEA9E|rgb\(\s*255,\s*234,\s*158\s*\))/i;
+
+    // Pre-focus: muted white border
+    expect(label.style.border).toMatch(mutedBorder);
+
+    fireEvent.focus(input);
+    expect(label.style.border).toMatch(goldBorder);
+
+    fireEvent.blur(input);
+    expect(label.style.border).toMatch(mutedBorder);
   });
 
   // --- Loading state ------------------------------------------------------

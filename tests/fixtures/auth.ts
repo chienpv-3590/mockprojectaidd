@@ -130,6 +130,7 @@ async function injectSessionCookie(
 
 type AuthFixtures = {
   authedContext: BrowserContext;
+  testUserId: string;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -139,6 +140,18 @@ export const test = base.extend<AuthFixtures>({
     await injectSessionCookie(context, session);
     await use(context);
     await deleteUser(userId);
+  },
+  testUserId: async ({ authedContext }, use) => {
+    // Extract the user ID from the session cookie
+    const cookies = await authedContext.cookies();
+    const authCookie = cookies.find((c) => c.name.includes("auth-token"));
+    if (!authCookie?.value) {
+      throw new Error("Auth cookie not found — fixture may not be set up correctly");
+    }
+    // Decode base64 to get the session JSON
+    const payload = authCookie.value.replace(/^base64-/, "");
+    const session = JSON.parse(Buffer.from(payload, "base64").toString("utf-8")) as SupabaseSession;
+    await use(session.user.id);
   },
 });
 

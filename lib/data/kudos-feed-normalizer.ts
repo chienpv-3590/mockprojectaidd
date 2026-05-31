@@ -9,6 +9,14 @@ import { createSignedUrlsBatch } from "@/lib/storage/kudos-images";
 export type RawKudosRow = {
   id: string;
   message: string;
+  /**
+   * Free-text title entered by the sender (nullable — rows created before
+   * migration 0004 will have null here).
+   */
+  title?: string | null;
+  is_anonymous?: boolean | null;
+  /** Sender-chosen display name when is_anonymous; null otherwise. */
+  anonymous_nickname?: string | null;
   created_at: string;
   from_user: string;
   to_user: string;
@@ -44,6 +52,8 @@ export async function normalizeRow(
   row: RawKudosRow,
   authUserId: string | null
 ): Promise<KudosCardData> {
+  const isAnonymous = row.is_anonymous === true;
+
   const heartCount = (row.hearts ?? []).reduce(
     (sum: number, h: { weight: number }) => sum + (h.weight ?? 0),
     0
@@ -51,7 +61,13 @@ export async function normalizeRow(
   const likedByMe = authUserId
     ? (row.hearts ?? []).some((h: { user_id: string }) => h.user_id === authUserId)
     : false;
-  const canLike = authUserId ? authUserId !== row.from_user : false;
+
+  // When anonymous, from_user is masked to null in kudos_card_view.
+  // For rows fetched directly from the kudos table (e.g. via KUDOS_SELECT in
+  // kudos-feed.ts), we replicate the same masking here so canLike works
+  // correctly: an anonymous sender should never be linkable.
+  const effectiveSenderId = isAnonymous ? null : (row.from_user ?? null);
+  const canLike = authUserId ? authUserId !== effectiveSenderId : false;
 
   const storagePaths = (row.images ?? [])
     .sort((a, b) => a.display_order - b.display_order)
@@ -62,20 +78,45 @@ export async function normalizeRow(
     signedUrls = await createSignedUrlsBatch(supabase, storagePaths);
   }
 
+  // BIG-label precedence: explicit title → feature hashtag label_vi → empty string
+  const resolvedTitle: string | null =
+    (row.title ?? null) ||
+    (row.feature_hashtag?.label_vi ?? null) ||
+    null;
+
+  // Build sender profile. When anonymous, wipe all identity fields so UI
+  // cards cannot render a profile link or avatar for the sender.
+  const senderProfile = isAnonymous
+    ? {
+        // user_id null signals "no profile link" to the card renderer
+        user_id: "",
+        full_name_vi: row.anonymous_nickname ?? "",
+        employee_code: null,
+        title: null,
+        hero_rank: null,
+        avatar_url: null,
+        tier: 0 as const,
+        department_code: null,
+        department_name_vi: null,
+      }
+    : {
+        user_id: row.sender?.user_id ?? row.from_user,
+        full_name_vi: row.sender?.full_name_vi ?? "",
+        employee_code: row.sender?.employee_code ?? null,
+        title: row.sender?.title ?? null,
+        hero_rank: row.sender?.hero_rank ?? null,
+        avatar_url: row.sender?.avatar_url ?? null,
+        tier: 0 as const,
+        ...extractDept(row.sender ?? {}),
+      };
+
   return {
     id: row.id,
     message: row.message,
+    title: resolvedTitle,
+    is_anonymous: isAnonymous,
     created_at: row.created_at,
-    sender: {
-      user_id: row.sender?.user_id ?? row.from_user,
-      full_name_vi: row.sender?.full_name_vi ?? "",
-      employee_code: row.sender?.employee_code ?? null,
-      title: row.sender?.title ?? null,
-      hero_rank: row.sender?.hero_rank ?? null,
-      avatar_url: row.sender?.avatar_url ?? null,
-      tier: 0,
-      ...extractDept(row.sender ?? {}),
-    },
+    sender: senderProfile,
     receiver: {
       user_id: row.receiver?.user_id ?? row.to_user,
       full_name_vi: row.receiver?.full_name_vi ?? "",

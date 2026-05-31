@@ -73,6 +73,8 @@ export function FilterDropdown({
         // Visible text collapses to just the selected value (e.g. "#Truyền cảm
         // hứng"); aria-label keeps the filter name for screen readers.
         aria-label={selectedLabel ? `${label}: ${prefix}${selectedLabel}` : undefined}
+        // Stable test/automation hook — survives the text collapse on select.
+        data-filter-name={label}
         onClick={() => onOpenChange(!open)}
         className="flex items-center gap-2 transition hover:bg-[rgba(255,234,158,0.16)]"
         style={{

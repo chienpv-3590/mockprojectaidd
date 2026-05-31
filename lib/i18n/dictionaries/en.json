@@ -1,0 +1,125 @@
+{
+  "metadata": {
+    "homeTitle": "SAA 2025 — Sun* Annual Awards",
+    "titleTemplate": "%s | SAA 2025",
+    "description": "Sun* Annual Awards 2025 — Celebrating outstanding talent and contributions.",
+    "loginTitle": "Sign in",
+    "awardsTitle": "SAA 2025 Awards System",
+    "kudosTitle": "Sun* Kudos — SAA 2025"
+  },
+  "nav": {
+    "about": "About SAA 2025",
+    "awardsInfo": "Awards Information",
+    "kudos": "Sun* Kudos",
+    "standards": "General Standards"
+  },
+  "userMenu": {
+    "accountMenu": "Account",
+    "profile": "Profile",
+    "signOut": "Sign out",
+    "fallbackName": "User"
+  },
+  "footer": {
+    "copyright": "Copyright © 2025 Sun*"
+  },
+  "languageSwitcher": {
+    "ariaLabel": "Change language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  },
+  "login": {
+    "taglineLine1": "Begin your journey with SAA 2025.",
+    "taglineLine2": "Sign in to explore!",
+    "googleButton": "LOGIN With Google",
+    "googleButtonPending": "Signing in…",
+    "logoAria": "Sun* Annual Awards 2025 — Home",
+    "errors": {
+      "auth_callback_failed": "Sign-in failed. Please try again.",
+      "oauth_init_failed": "Could not start Google sign-in. Please try again."
+    }
+  },
+  "home": {
+    "aboutAwards": "ABOUT AWARDS",
+    "aboutKudos": "ABOUT KUDOS",
+    "timeLabel": "Time:",
+    "locationLabel": "Venue:",
+    "livestream": "Broadcast live via Livestream"
+  },
+  "kudosBanner": {
+    "eyebrow": "Recognition movement",
+    "heading": "Sun* Kudos",
+    "label": "New in SAA 2025",
+    "body": "Recognizing and thanking colleagues — held for the very first time for all Sunners. Launching in November 2025, it encourages Sun* people to share words of recognition and thanks for colleagues on the system announced by the organizers. This will serve as reference material for the Heads Council during the award selection process.",
+    "cta": "Details"
+  },
+  "standards": {
+    "metaTitle": "General Standards | SAA 2025",
+    "community": {
+      "title": "Community Standards",
+      "intro": "Community Standards are built to ensure a civilized, safe and positive environment for everyone taking part in the Sun* Kudos recognition and appreciation movement.",
+      "warning": "Any content found to match one of the violation criteria below will be labeled as Spam and proactively hidden by the system.",
+      "criteria": [
+        "Using profane or vulgar language, or content that is offensive or defamatory.",
+        "Mentioning political, religious, or gender-discrimination matters.",
+        "Containing specific figures (revenue, contracts, KPIs, customers, project codes, account numbers, etc.).",
+        "Mentioning the names of partners, customers, or external organizations.",
+        "Containing personal information (email, phone number, address, family details).",
+        "Repeatedly sending 3+ messages with similar content within a short time.",
+        "Kudos content that is too short (under 30 characters) with no context.",
+        "Sending to too many people/groups within a short time (<3s per message).",
+        "Spam wording (containing only characters such as \"!\", \"...\", or characters with no content).",
+        "An abnormal spike in the number of \"hearts\" (relative to average user behavior)."
+      ]
+    },
+    "security": {
+      "title": "Security Standards",
+      "lead": "Sunners are committed to protecting information. Every member is responsible for keeping content shared on the system confidential.",
+      "infoSecurity": {
+        "label": "Information Security",
+        "text": "All information shared by Sunners is kept confidential within the system."
+      },
+      "sharingScope": {
+        "label": "Sharing Scope",
+        "text": "All personnel and project information in the system is confidential. Sunners, please share only within Sun*."
+      },
+      "support": "For any questions, Sunners please contact the SAA organizing committee representative: Slack duong.thi.thuy.an for support."
+    }
+  },
+  "fab": {
+    "openMenu": "Quick menu",
+    "closeMenu": "Close menu",
+    "rules": "Rules",
+    "writeKudos": "Write KUDOS"
+  },
+  "rules": {
+    "title": "Rules",
+    "close": "Close",
+    "receivers": {
+      "heading": "KUDOS RECIPIENTS: HERO BADGES FOR POSITIVE INFLUENCE",
+      "intro": "Based on the number of teammates who have sent you Kudos, you earn a matching Hero badge, displayed right next to your profile name.",
+      "tiers": [
+        { "badgeKey": "new", "range": "1-4 people have sent you Kudos", "desc": "The journey of spreading good things begins — the first thank-yous and recognitions have found their way to you." },
+        { "badgeKey": "rising", "range": "5-9 people have sent you Kudos", "desc": "Your image is growing in your teammates' hearts through your kindness and dedication." },
+        { "badgeKey": "super", "range": "10–20 people have sent you Kudos", "desc": "You have become a trusted and beloved symbol — someone always ready to help and remembered by many teammates." },
+        { "badgeKey": "legend", "range": "Over 20 people have sent you Kudos", "desc": "You have become a legend — leaving an unforgettable mark on the team through your heart and your actions." }
+      ]
+    },
+    "senders": {
+      "heading": "KUDOS SENDERS: COLLECT ALL 6 ICONS, GET A MYSTERY GIFT",
+      "body": "Every Kudos you send is posted to the system and earns ❤ from the Sunner community. For every 5 ❤, you unlock 1 Secret Box for a chance at one of SAA's 6 exclusive icons.",
+      "iconLabels": [
+        "REVIVAL",
+        "TOUCH OF LIGHT",
+        "STAY GOLD",
+        "FLOW TO HORIZON",
+        "BEYOND THE BOUNDARY",
+        "ROOT FURTHER"
+      ],
+      "footnote": "Sunners who collect all 6 icons receive a mystery gift from SAA 2025."
+    },
+    "national": {
+      "heading": "NATIONAL KUDOS",
+      "body": "The 5 Kudos with the most ❤ across Sun* officially become National Kudos and receive a special gift from SAA 2025: Root Further."
+    }
+  }
+}

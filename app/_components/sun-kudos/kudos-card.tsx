@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import type { KudosCardData } from "./types";
 import { FM, PersonBlock, ArrowIcon, HeartButton } from "./kudos-card-parts";
 
@@ -43,7 +42,10 @@ export function KudosCard({
 
   return (
     <article
-      className="flex flex-col gap-4"
+      // `justify-between` (highlight only) pins the action bar to the bottom so
+      // a short-content card stretched to the tallest neighbour's height
+      // doesn't leave empty cream space below the message.
+      className={`flex flex-col gap-4${isHighlight ? " justify-between" : ""}`}
       style={{
         background: "#FFF8E1",
         border: cardBorder,
@@ -79,9 +81,15 @@ export function KudosCard({
           </p>
         )}
 
-        {/* Message body in the gold framed box (Frame 425) — click navigates to
-            the Kudos detail page. Spec C.3.5 + TC 31693bb7. */}
-        <Link href={`/sun-kudos/${data.id}`} className="block transition hover:opacity-90">
+        {/* Message body in the gold framed box (Frame 425) — click opens the
+            Kudos detail popup (no page navigation). Spec C.3.5 + TC 31693bb7. */}
+        <button
+          type="button"
+          onClick={() => onViewDetail?.(data.id)}
+          aria-label="Mở chi tiết kudos"
+          className="block w-full text-left transition hover:opacity-90"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
           <div style={{ background: "rgba(255,234,158,0.40)",
             border: "1px solid #FFEA9E", borderRadius: "12px",
             padding: "16px 24px" }}>
@@ -91,7 +99,7 @@ export function KudosCard({
               {data.content}
             </p>
           </div>
-        </Link>
+        </button>
 
         {/* Image thumbnails — ≤5 (C.3.6) */}
         {data.images && data.images.length > 0 && (

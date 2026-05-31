@@ -87,11 +87,13 @@ export class SunKudosPage {
   // lives in the HighlightCarousel section header; clicking it opens a
   // role="listbox" of options (aria-label = the button label).
   hashtagFilterButton(): Locator {
-    return this.highlightCarousel().locator('button:has-text("Hashtag")');
+    // data-filter-name is stable across the "selected" state, which collapses
+    // the visible button text to just the chosen value.
+    return this.highlightCarousel().locator('button[data-filter-name="Hashtag"]');
   }
 
   departmentFilterButton(): Locator {
-    return this.highlightCarousel().locator('button:has-text("Phòng ban")');
+    return this.highlightCarousel().locator('button[data-filter-name="Phòng ban"]');
   }
 
   filterListbox(label: "Hashtag" | "Phòng ban"): Locator {
@@ -100,11 +102,6 @@ export class SunKudosPage {
 
   filterOptionButton(label: "Hashtag" | "Phòng ban", index = 0): Locator {
     return this.filterListbox(label).locator('li[role="option"] button').nth(index);
-  }
-
-  // "Xoá bộ lọc" — clears both filters; sits to the right of the Phòng ban button.
-  clearFilterButton(): Locator {
-    return this.highlightCarousel().locator('button[aria-label="Xoá bộ lọc"]');
   }
 
   // Backwards-compatible aliases used by older specs.

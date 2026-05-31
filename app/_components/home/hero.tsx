@@ -46,17 +46,8 @@ export function Hero({ countdownSlot }: HeroProps) {
         />
 
         <div className="flex flex-col items-start gap-4">
-          <p
-            className="text-white"
-            style={{
-              fontFamily: FONT_MONTSERRAT,
-              fontWeight: 700,
-              fontSize: "24px",
-              lineHeight: "32px",
-            }}
-          >
-            Comming soon
-          </p>
+          {/* "Coming soon" teaser (B1.2) lives inside the countdown slot — it
+              hides itself once the event start time is reached. */}
           {countdownSlot}
           <div
             className="mt-2 flex flex-wrap items-center gap-x-12 gap-y-1 text-white/90"

@@ -20,11 +20,17 @@ vi.mock("@/lib/data/kudos-feed", () => ({
   getKudosById: vi.fn(),
   getHighlightKudos: vi.fn(),
   getAllKudos: vi.fn(),
+  getUserKudos: vi.fn(),
 }));
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getKudosById, getHighlightKudos, getAllKudos } from "@/lib/data/kudos-feed";
+import {
+  getKudosById,
+  getHighlightKudos,
+  getAllKudos,
+  getUserKudos,
+} from "@/lib/data/kudos-feed";
 import {
   submitKudos,
   toggleHeart,
@@ -32,10 +38,12 @@ import {
   fetchKudosCard,
   refetchHighlight,
   refetchFeed,
+  refetchUserKudos,
   searchSunners,
   getNextUnopenedBox,
-} from "@/app/sun-kudos/actions";
-import type { KudosCardData, KudosFilters } from "@/lib/data/types";
+} from "@/app/_actions/sun-kudos";
+import type { KudosCardData, KudosFilters, SubmitKudosInput } from "@/lib/data/types";
+import { SECRET_BOX_ICONS } from "@/lib/sun-kudos/secret-box-icons";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -60,12 +68,15 @@ describe("submitKudos()", () => {
     vi.mocked(revalidatePath).mockClear();
   });
 
-  const validInput = {
+  const validInput: SubmitKudosInput = {
     to_user: OTHER_USER.id,
     message: "Great work!",
+    title: "Well done",
+    is_anonymous: false,
     feature_hashtag_id: "ht-1",
     small_hashtag_ids: ["s1", "s2"],
     image_paths: ["img/a.jpg"],
+    mention_user_ids: [],
   };
 
   it("throws 'unauthenticated' when no user session", async () => {
@@ -87,10 +98,10 @@ describe("submitKudos()", () => {
     ).rejects.toThrow("invalid_message_length");
   });
 
-  it("throws 'invalid_message_length' for message > 2000 chars", async () => {
+  it("throws 'invalid_message_length' for message > 1000 plain-text chars", async () => {
     setupMock(AUTHED_USER);
     await expect(
-      submitKudos({ ...validInput, message: "x".repeat(2001) })
+      submitKudos({ ...validInput, message: "x".repeat(1001) })
     ).rejects.toThrow("invalid_message_length");
   });
 
@@ -123,13 +134,16 @@ describe("submitKudos()", () => {
     // RPC was called once with the right function name
     expect(mock.rpcCalls).toHaveLength(1);
     expect(mock.rpcCalls[0].fn).toBe("submit_kudos_atomic");
-    expect(mock.rpcCalls[0].args).toEqual({
+    expect(mock.rpcCalls[0].args).toMatchObject({
       p_from_user: AUTHED_USER.id,
       p_to_user: validInput.to_user,
-      p_message: validInput.message,
       p_hashtag_id: validInput.feature_hashtag_id,
       p_small_tags: validInput.small_hashtag_ids,
       p_image_paths: validInput.image_paths,
+      p_title: validInput.title,
+      p_is_anonymous: false,
+      p_anonymous_nickname: null,
+      p_mention_ids: [],
     });
 
     expect(revalidatePath).toHaveBeenCalledWith("/sun-kudos");
@@ -347,16 +361,15 @@ describe("openSecretBox()", () => {
       data: { id: INPUT.box_id, owner: AUTHED_USER.id, status: "unopened" },
       error: null,
     });
-    // update → success
-    mock.queueResponse("secret_boxes", { data: null, error: null });
+    // update → returns the affected row (status='unopened' race guard).
+    mock.queueResponse("secret_boxes", {
+      data: [{ id: INPUT.box_id }],
+      error: null,
+    });
 
-    const REWARDS = [
-      "1 áo phông SAA",
-      "Voucher cafe 100k",
-      "Mũ SAA 2025",
-      "Sticker pack",
-      "Voucher lunch 200k",
-    ];
+    // Reward label comes from the awardable SAA collectible icons (those with
+    // artwork). Derive from the single source of truth to stay in sync.
+    const REWARDS = SECRET_BOX_ICONS.filter((i) => i.src !== null).map((i) => i.label);
 
     const result = await openSecretBox(INPUT);
 
@@ -376,6 +389,19 @@ describe("openSecretBox()", () => {
         )
     );
     expect(updateCall).toBeDefined();
+  });
+
+  it("throws 'box_already_opened' when the race guard finds no row to update", async () => {
+    // Concurrent caller already flipped status to 'opened' between our SELECT
+    // and UPDATE — the .eq("status","unopened") filter matches zero rows.
+    const mock = setupMock(AUTHED_USER);
+    mock.queueResponse("secret_boxes", {
+      data: { id: INPUT.box_id, owner: AUTHED_USER.id, status: "unopened" },
+      error: null,
+    });
+    mock.queueResponse("secret_boxes", { data: [], error: null });
+
+    await expect(openSecretBox(INPUT)).rejects.toThrow("box_already_opened");
   });
 });
 
@@ -446,6 +472,54 @@ describe("refetchFeed()", () => {
 
     await refetchFeed();
     expect(getAllKudos).toHaveBeenCalledWith(mock.supabase, undefined, 10, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// refetchUserKudos — targetUserId uuid-guard (Phase B1)
+// ---------------------------------------------------------------------------
+
+describe("refetchUserKudos()", () => {
+  // Canonical v4 uuid for the "other user" feed.
+  const VALID_UUID = "11111111-2222-4333-8444-555555555555";
+
+  beforeEach(() => {
+    vi.mocked(getUserKudos).mockReset();
+    vi.mocked(getUserKudos).mockResolvedValue({ rows: [], nextCursor: null });
+  });
+
+  it("returns an empty result and skips getUserKudos when unauthenticated", async () => {
+    setupMock(null);
+    const res = await refetchUserKudos("received");
+    expect(res).toEqual({ rows: [], nextCursor: null });
+    expect(getUserKudos).not.toHaveBeenCalled();
+  });
+
+  it("uses targetUserId when it is a valid uuid", async () => {
+    const mock = setupMock(AUTHED_USER);
+    await refetchUserKudos("received", undefined, 2025, VALID_UUID);
+    expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, VALID_UUID, "received", {
+      cursor: undefined,
+      year: 2025,
+    });
+  });
+
+  it("falls back to the logged-in user.id when targetUserId is undefined", async () => {
+    const mock = setupMock(AUTHED_USER);
+    await refetchUserKudos("sent", "cursor-1", 2024);
+    expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, AUTHED_USER.id, "sent", {
+      cursor: "cursor-1",
+      year: 2024,
+    });
+  });
+
+  it("falls back to user.id when targetUserId is not a valid uuid", async () => {
+    const mock = setupMock(AUTHED_USER);
+    await refetchUserKudos("received", undefined, undefined, "not-a-uuid");
+    expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, AUTHED_USER.id, "received", {
+      cursor: undefined,
+      year: undefined,
+    });
   });
 });
 

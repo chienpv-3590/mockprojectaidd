@@ -4,20 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_LINKS, makeNavClickHandler, normalizePath } from "./nav-links";
 import { HomeLogoLink } from "./home-logo-link";
+import { useI18n } from "@/lib/i18n/locale-context";
 
 const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
 const FONT_MONTSERRAT_ALT = "var(--font-montserrat-alt), system-ui, sans-serif";
 
-// Footer mirrors the header nav (per design item 7) + adds "Tiêu chuẩn chung"
+// Footer mirrors the header nav (per design item 7) + adds "General Standards"
 // at the end. Keeping link config in nav-links.ts ensures both render the
 // same labels and apply the same active-click-scroll-to-top behavior.
 const FOOTER_LINKS = [
   ...NAV_LINKS,
-  { label: "Tiêu chuẩn chung", href: "#" },
-];
+  { labelKey: "standards", href: "/tieu-chuan-cong-dong" },
+] as const;
 
 export function Footer() {
   const pathname = normalizePath(usePathname());
+  const { dict } = useI18n();
   return (
     <footer className="bg-[#00101A] px-6 py-10 text-white/80 sm:px-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
@@ -27,10 +29,10 @@ export function Footer() {
           className="flex flex-wrap items-center justify-center gap-y-2"
         >
           {FOOTER_LINKS.map((link) => {
-            const active = link.href !== "#" && pathname === link.href;
+            const active = pathname === link.href;
             return (
               <Link
-                key={link.label}
+                key={link.labelKey}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 onClick={makeNavClickHandler(active)}
@@ -46,7 +48,7 @@ export function Footer() {
                     : "inline-flex h-14 items-center gap-1 px-4 transition hover:bg-[rgba(255,234,158,0.1)]"
                 }
               >
-                {link.label}
+                {dict.nav[link.labelKey]}
               </Link>
             );
           })}

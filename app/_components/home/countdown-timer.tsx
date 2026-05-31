@@ -6,47 +6,67 @@ const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
 const FONT_DIGITAL = "var(--font-orbitron), var(--font-geist-mono), ui-monospace, monospace";
 
 type CountdownTimerProps = {
-  /** ISO string from `event_settings`. `null` → show zeros. */
+  /** ISO string from `event_settings`. `null` → prelaunch state, zeros. */
   eventDateIso: string | null;
 };
 
-type Remaining = { d: number; h: number; m: number };
+// `started` is true only once a *valid* event date has been reached/passed.
+// null / invalid dates stay in the prelaunch state (started=false) so the
+// "Coming soon" teaser keeps showing and the UI never crashes (spec B1, ID-60).
+type CountdownState = { d: number; h: number; m: number; started: boolean };
 
-function computeRemaining(iso: string | null): Remaining {
-  if (!iso) return { d: 0, h: 0, m: 0 };
+function computeState(iso: string | null): CountdownState {
+  if (!iso) return { d: 0, h: 0, m: 0, started: false };
   const target = new Date(iso).getTime();
-  if (isNaN(target)) return { d: 0, h: 0, m: 0 };
+  if (isNaN(target)) return { d: 0, h: 0, m: 0, started: false };
   const diff = target - Date.now();
-  if (diff <= 0) return { d: 0, h: 0, m: 0 };
+  if (diff <= 0) return { d: 0, h: 0, m: 0, started: true };
   const d = Math.floor(diff / 86_400_000);
   const h = Math.floor((diff % 86_400_000) / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  return { d, h, m };
+  return { d, h, m, started: false };
 }
 
 export function CountdownTimer({ eventDateIso }: CountdownTimerProps) {
-  // Start from a deterministic value (zeros) so the server render and the first
-  // client render match — computing from Date.now() during the initial render
-  // would mismatch whenever a minute/hour/day boundary is crossed between SSR
-  // and hydration, triggering a React hydration error. The real remaining time
-  // is filled in right after mount, then ticked every minute.
-  const [remaining, setRemaining] = useState<Remaining>({ d: 0, h: 0, m: 0 });
+  // Start from a deterministic value (zeros, prelaunch) so the server render and
+  // the first client render match — computing from Date.now() during the initial
+  // render would mismatch whenever a minute/hour/day boundary is crossed between
+  // SSR and hydration, triggering a React hydration error. The real remaining
+  // time is filled in right after mount, then ticked every minute.
+  const [state, setState] = useState<CountdownState>({ d: 0, h: 0, m: 0, started: false });
 
   useEffect(() => {
     // Intentional post-hydration sync: the initial state is zeros (to match SSR),
     // so we must compute the real value once on mount. This deliberate setState
     // is the documented client-only-value pattern, not an accidental loop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRemaining(computeRemaining(eventDateIso));
-    const id = setInterval(() => setRemaining(computeRemaining(eventDateIso)), 60_000);
+    setState(computeState(eventDateIso));
+    const id = setInterval(() => setState(computeState(eventDateIso)), 60_000);
     return () => clearInterval(id);
   }, [eventDateIso]);
 
   return (
-    <div className="flex items-start gap-10 text-white">
-      <Tile value={remaining.d} label="DAYS" />
-      <Tile value={remaining.h} label="HOURS" />
-      <Tile value={remaining.m} label="MINUTES" />
+    <div className="flex flex-col items-start gap-4">
+      {/* B1.2 "Coming soon" teaser — hidden once the event start time is
+          reached (spec B1.3 / test cases ID-41, ID-42); the 00 tiles stay. */}
+      {!state.started && (
+        <p
+          className="text-white"
+          style={{
+            fontFamily: FONT_MONTSERRAT,
+            fontWeight: 700,
+            fontSize: "24px",
+            lineHeight: "32px",
+          }}
+        >
+          Coming soon
+        </p>
+      )}
+      <div className="flex items-start gap-10 text-white">
+        <Tile value={state.d} label="DAYS" />
+        <Tile value={state.h} label="HOURS" />
+        <Tile value={state.m} label="MINUTES" />
+      </div>
     </div>
   );
 }

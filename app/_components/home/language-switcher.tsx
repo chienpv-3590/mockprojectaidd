@@ -1,15 +1,21 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { setLocaleCookie } from "@/lib/i18n/set-locale-cookie";
+import { useI18n } from "@/lib/i18n/locale-context";
 
-type Locale = "VN" | "EN";
+type Code = "VN" | "EN";
+
+/** Maps the display code to the URL/cookie locale code. */
+const LANG_OF: Record<Code, "vi" | "en"> = { VN: "vi", EN: "en" };
 
 const ASSETS = "/home";
 
-const LOCALES: { code: Locale; label: string; flagSrc: string }[] = [
-  { code: "VN", label: "Tiếng Việt", flagSrc: `${ASSETS}/flag-vn.svg` },
-  { code: "EN", label: "English", flagSrc: `${ASSETS}/flag-en.svg` },
+const LOCALES: { code: Code; labelKey: "vietnamese" | "english"; flagSrc: string }[] = [
+  { code: "VN", labelKey: "vietnamese", flagSrc: `${ASSETS}/flag-vn.svg` },
+  { code: "EN", labelKey: "english", flagSrc: `${ASSETS}/flag-en.svg` },
 ];
 
 const TRIGGER_STYLE = {
@@ -21,9 +27,26 @@ const TRIGGER_STYLE = {
 };
 
 export function LanguageSwitcher() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { locale, dict } = useI18n();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Locale>("VN");
+  // Selection follows the active locale (cookie-backed), so it stays correct
+  // after navigating to a page whose URL no longer carries ?lang.
+  const selected: Code = locale === "en" ? "EN" : "VN";
   const ref = useRef<HTMLDivElement>(null);
+
+  const changeLocale = (code: Code) => {
+    setOpen(false);
+    const lang = LANG_OF[code];
+    // Set the cookie first so the very next server render uses the new locale.
+    setLocaleCookie(lang);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("lang", lang);
+    router.push(`${pathname}?${params.toString()}`);
+    router.refresh();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -47,7 +70,7 @@ export function LanguageSwitcher() {
     <div ref={ref} className="relative">
       <button
         type="button"
-        aria-label="Change language"
+        aria-label={dict.languageSwitcher.ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -55,7 +78,7 @@ export function LanguageSwitcher() {
       >
         <Image
           src={current.flagSrc}
-          alt={`${current.label} flag`}
+          alt={dict.languageSwitcher[current.labelKey]}
           width={20}
           height={20}
           unoptimized
@@ -84,18 +107,14 @@ export function LanguageSwitcher() {
                 type="button"
                 role="option"
                 aria-selected={selected === loc.code}
-                onClick={() => {
-                  setSelected(loc.code);
-                  setOpen(false);
-                  // i18n wiring deferred — selection is visual only for now.
-                }}
+                onClick={() => changeLocale(loc.code)}
                 className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-white/90 transition hover:bg-white/10 ${
                   selected === loc.code ? "bg-white/5" : ""
                 }`}
                 style={{ fontFamily: "var(--font-montserrat), system-ui, sans-serif", fontWeight: 500 }}
               >
                 <Image src={loc.flagSrc} alt="" width={18} height={18} unoptimized className="h-4 w-4" />
-                <span>{loc.label}</span>
+                <span>{dict.languageSwitcher[loc.labelKey]}</span>
                 <span className="ml-auto text-xs opacity-60">{loc.code}</span>
               </button>
             </li>

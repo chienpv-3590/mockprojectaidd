@@ -54,7 +54,7 @@ function SkeletonCloud() {
 
 /**
  * Top bar inside the canvas — per B.7 design:
- *   - Search bar TOP-LEFT
+ *   - Search bar TOP-LEFT (per spec B.7.3, focus shows visible focus border)
  *   - "388 KUDOS" centered heading (large bold white) TOP-CENTER
  *   - Pan/Zoom is rendered separately at bottom-right (see CanvasPanZoomButton)
  */
@@ -66,6 +66,7 @@ function CanvasTopBar({
   onSearchChange: (q: string) => void;
 }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,23 +81,38 @@ function CanvasTopBar({
 
   return (
     <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-8 pt-6">
-      {/* Search bar TOP-LEFT — debounced 200ms */}
+      {/* Search bar TOP-LEFT — debounced 200ms; focus state per spec B.7.3 */}
       <label
-        className="flex items-center gap-2 rounded-full px-4 py-2"
+        className="flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
         style={{
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.15)",
+          background: searchFocused ? "rgba(255,234,158,0.08)" : "rgba(255,255,255,0.06)",
+          border: searchFocused
+            ? "1px solid #FFEA9E"
+            : "1px solid rgba(255,255,255,0.15)",
         }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <circle cx="7" cy="7" r="4.5" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
-          <path d="M10.5 10.5L13.5 13.5" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" />
+          <circle
+            cx="7"
+            cy="7"
+            r="4.5"
+            stroke={searchFocused ? "#FFEA9E" : "rgba(255,255,255,0.6)"}
+            strokeWidth="1.5"
+          />
+          <path
+            d="M10.5 10.5L13.5 13.5"
+            stroke={searchFocused ? "#FFEA9E" : "rgba(255,255,255,0.6)"}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </svg>
         <input
           type="search"
           placeholder="Tìm kiếm"
           maxLength={100}
           onChange={handleInput}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           aria-label="Tìm kiếm Sunner"
           className="bg-transparent outline-none w-32"
           style={{ fontFamily: FM, fontSize: "13px", color: "rgba(255,255,255,0.85)" }}
@@ -124,7 +140,15 @@ function CanvasTopBar({
   );
 }
 
-/** Pan/Zoom toggle — anchored bottom-right corner per B.7 design. */
+/**
+ * Pan/Zoom toggle — anchored bottom-right corner per B.7 design.
+ * Per spec B.7.2: shows a custom hover tooltip "Pan/Zoom" matching the
+ * SpotlightTooltip dark+gold theme (anchored above-right of the button, inside
+ * the canvas card bounds). The tooltip is linked to the button via
+ * aria-describedby for screen-reader users.
+ */
+const PAN_ZOOM_TOOLTIP_ID = "spotlight-pan-zoom-tooltip";
+
 function CanvasPanZoomButton({
   panningDisabled,
   onTogglePanning,
@@ -132,29 +156,60 @@ function CanvasPanZoomButton({
   panningDisabled: boolean;
   onTogglePanning: () => void;
 }) {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+
   return (
-    <button
-      type="button"
-      aria-label={panningDisabled ? "Bật chế độ Pan và Zoom" : "Tắt chế độ Pan và Zoom"}
-      aria-pressed={!panningDisabled}
-      onClick={onTogglePanning}
-      className="absolute bottom-6 right-6 z-10 rounded-full p-2 transition hover:bg-white/10"
-      style={{
-        background: panningDisabled ? "rgba(255,255,255,0.06)" : "rgba(255,234,158,0.18)",
-        border: panningDisabled
-          ? "1px solid rgba(255,255,255,0.15)"
-          : "1px solid rgba(255,234,158,0.5)",
-      }}
-    >
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-        <path
-          d="M3 3h5M3 3v5M3 3l5 5M17 3h-5M17 3v5M17 3l-5 5M3 17h5M3 17v-5M3 17l5-5M17 17h-5M17 17v-5M17 17l-5-5"
-          stroke={panningDisabled ? "rgba(255,255,255,0.7)" : "#FFEA9E"}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </button>
+    <div className="absolute bottom-6 right-6 z-10">
+      <button
+        type="button"
+        aria-label={panningDisabled ? "Bật chế độ Pan và Zoom" : "Tắt chế độ Pan và Zoom"}
+        aria-pressed={!panningDisabled}
+        aria-describedby={tooltipVisible ? PAN_ZOOM_TOOLTIP_ID : undefined}
+        onClick={onTogglePanning}
+        onMouseEnter={() => setTooltipVisible(true)}
+        onMouseLeave={() => setTooltipVisible(false)}
+        onFocus={() => setTooltipVisible(true)}
+        onBlur={() => setTooltipVisible(false)}
+        className="rounded-full p-2 transition hover:bg-white/10"
+        style={{
+          background: panningDisabled ? "rgba(255,255,255,0.06)" : "rgba(255,234,158,0.18)",
+          border: panningDisabled
+            ? "1px solid rgba(255,255,255,0.15)"
+            : "1px solid rgba(255,234,158,0.5)",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+          <path
+            d="M3 3h5M3 3v5M3 3l5 5M17 3h-5M17 3v5M17 3l-5 5M3 17h5M3 17v-5M3 17l5-5M17 17h-5M17 17v-5M17 17l-5-5"
+            stroke={panningDisabled ? "rgba(255,255,255,0.7)" : "#FFEA9E"}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+      {tooltipVisible && (
+        <div
+          id={PAN_ZOOM_TOOLTIP_ID}
+          role="tooltip"
+          className="pointer-events-none absolute"
+          style={{
+            right: 0,
+            bottom: "calc(100% + 8px)",
+            background: "rgba(6, 16, 24, 0.95)",
+            border: "1px solid rgba(153, 140, 95, 0.6)",
+            borderRadius: "10px",
+            padding: "6px 12px",
+            fontFamily: FM,
+            fontWeight: 700,
+            fontSize: "12px",
+            color: "#FFEA9E",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Pan/Zoom
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -262,7 +317,7 @@ function ActivityLogStack({ nodes }: { nodes: SpotlightNode[] }) {
   const items = [...nodes]
     .filter((n) => n.last_received_at)
     .sort((a, b) => b.last_received_at.localeCompare(a.last_received_at))
-    .slice(0, 6)
+    .slice(0, 5)
     .reverse();
 
   if (items.length === 0) return null;

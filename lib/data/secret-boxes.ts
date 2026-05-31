@@ -27,6 +27,34 @@ export async function getSecretBoxCounts(
 }
 
 /**
+ * Distinct collectible icon ids (1..6) the user has WON from opened/claimed
+ * Secret Boxes. Drives the profile "Bộ sưu tập icon của tôi" collection — an
+ * icon shows in colour once owned, otherwise its slot is locked.
+ */
+export async function getOwnedIcons(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("secret_boxes")
+    .select("reward_icon")
+    .eq("owner", userId)
+    .in("status", ["opened", "claimed"])
+    .not("reward_icon", "is", null);
+
+  if (error) {
+    if (isMissingTable(error)) return [];
+    throw error;
+  }
+
+  const ids = new Set<number>();
+  for (const row of (data ?? []) as { reward_icon: number | null }[]) {
+    if (row.reward_icon != null) ids.add(row.reward_icon);
+  }
+  return Array.from(ids).sort((a, b) => a - b);
+}
+
+/**
  * List the most recent secret box recipients (status = opened), joined with
  * their user profiles, ordered by opened_at descending.
  */
@@ -37,23 +65,38 @@ export async function listRecentRecipients(
   // secret_boxes.owner references auth.users, so PostgREST can't embed
   // user_profiles via a fk hint. Fetch boxes first, then profiles + depts
   // in separate queries and merge in code.
+  // Fetch a wider window than `limit` so that, after collapsing multiple boxes
+  // opened by the same person, we can still surface up to `limit` DISTINCT
+  // recipients (a user may open several boxes).
   const { data: boxesRaw, error } = await supabase
     .from("secret_boxes")
     .select("reward_label_vi, opened_at, owner")
     .eq("status", "opened")
     .order("opened_at", { ascending: false })
-    .limit(limit);
+    .limit(limit * 4);
 
   if (error) {
     if (isMissingTable(error)) return [];
     throw error;
   }
 
-  const boxes = (boxesRaw ?? []) as Array<{
+  const allBoxes = (boxesRaw ?? []) as Array<{
     reward_label_vi: string | null;
     opened_at: string | null;
     owner: string;
   }>;
+
+  // Dedupe by owner — keep the most recent box per recipient. This both matches
+  // the "recent recipients" intent and guarantees a unique React key downstream
+  // (the row is keyed by user_id).
+  const seenOwners = new Set<string>();
+  const boxes = allBoxes
+    .filter((b) => {
+      if (!b.owner || seenOwners.has(b.owner)) return false;
+      seenOwners.add(b.owner);
+      return true;
+    })
+    .slice(0, limit);
   if (boxes.length === 0) return [];
 
   const ownerIds = Array.from(new Set(boxes.map((b) => b.owner).filter(Boolean)));

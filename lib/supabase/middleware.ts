@@ -1,14 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
-
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-}
-
-export async function updateSession(request: NextRequest) {
+/**
+ * Refreshes the Supabase auth session on every request and returns the
+ * authenticated user (or null) alongside the response carrying any refreshed
+ * cookies. Redirect decisions live in `proxy.ts` so they can apply the correct
+ * locale prefix (i18n routing).
+ *
+ * IMPORTANT: always read `getUser()` to refresh the session before any auth
+ * check downstream.
+ */
+export async function updateSession(
+  request: NextRequest
+): Promise<{ response: NextResponse; user: User | null }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(env.supabaseUrl(), env.supabaseAnonKey(), {
@@ -28,33 +34,18 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: refresh the session before any auth check.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
-  // Logged-out user hitting a protected route → redirect to /login.
-  if (!user && !isPublic(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return copyCookies(NextResponse.redirect(url), response);
-  }
-
-  // Logged-in user hitting /login → bounce to home.
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return copyCookies(NextResponse.redirect(url), response);
-  }
-
-  return response;
+  return { response, user };
 }
 
-// Carry the refreshed cookies from `updateSession`'s response onto a redirect
-// response so the user keeps their refreshed session and we avoid redirect loops.
-function copyCookies(target: NextResponse, source: NextResponse): NextResponse {
+/**
+ * Carry the refreshed cookies from `updateSession`'s response onto a redirect
+ * response so the user keeps their refreshed session and we avoid redirect loops.
+ */
+export function copyCookies(target: NextResponse, source: NextResponse): NextResponse {
   for (const cookie of source.cookies.getAll()) {
     target.cookies.set(cookie);
   }

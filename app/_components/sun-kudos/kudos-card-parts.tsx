@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { KudosCardData } from "./types";
 import { TitleBadge } from "./kudos-title-badge";
+import { AvatarHoverTrigger } from "./avatar-hover-trigger";
 
 export const FM = "var(--font-montserrat), system-ui, sans-serif";
 
@@ -75,7 +76,9 @@ export function PersonBlock({
       aria-label={`Xem hồ sơ của ${user.name}`}
       className="flex flex-col items-center gap-1.5 text-center transition hover:opacity-80"
     >
-      <Avatar url={user.avatarUrl} name={user.name} size={64} />
+      <AvatarHoverTrigger userId={user.id}>
+        <Avatar url={user.avatarUrl} name={user.name} size={64} />
+      </AvatarHoverTrigger>
       <span
         style={{
           fontFamily: FM, fontWeight: 700, fontSize: "13px",

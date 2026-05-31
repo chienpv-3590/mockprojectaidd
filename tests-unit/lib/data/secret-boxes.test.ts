@@ -118,4 +118,34 @@ describe("listRecentRecipients()", () => {
     );
     expect(recipients).toEqual([]);
   });
+
+  it("dedupes by owner — keeps the most recent box per recipient (regression: duplicate React key when one user opens several boxes)", async () => {
+    const { supabase, queueResponse } = createSupabaseMock();
+    queueResponse("secret_boxes", {
+      data: [
+        { reward_label_vi: "Stay Gold",          opened_at: "2026-05-28T10:00:00Z", owner: "u1" },
+        { reward_label_vi: "Flow to Horizon",    opened_at: "2026-05-27T10:00:00Z", owner: "u1" },
+        { reward_label_vi: "Touch of Light",     opened_at: "2026-05-26T10:00:00Z", owner: "u1" },
+        { reward_label_vi: "Beyond the Boundary", opened_at: "2026-05-25T10:00:00Z", owner: "u2" },
+      ],
+      error: null,
+    });
+    queueResponse("user_profiles", {
+      data: [
+        { user_id: "u1", full_name_vi: "A", employee_code: "E1", title: null, avatar_url: null, department_code: null },
+        { user_id: "u2", full_name_vi: "B", employee_code: "E2", title: null, avatar_url: null, department_code: null },
+      ],
+      error: null,
+    });
+
+    const recipients = await listRecentRecipients(
+      supabase as unknown as SupabaseClient,
+      10
+    );
+
+    const ids = recipients.map((r) => r.user.user_id);
+    expect(ids).toEqual(["u1", "u2"]); // distinct, most-recent-first
+    expect(recipients[0].reward_label_vi).toBe("Stay Gold"); // u1's newest box kept
+    expect(new Set(ids).size).toBe(ids.length); // unique React keys downstream
+  });
 });

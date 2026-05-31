@@ -52,7 +52,13 @@ export type UserProfile = {
 
 export type KudosCardData = {
   id: string;
+  /**
+   * Sanitized HTML string — content has been processed through sanitizeKudosHtml()
+   * before persistence. Consumers may render as innerHTML directly.
+   */
   message: string;
+  title: string | null;
+  is_anonymous: boolean;
   created_at: string;
   sender: UserProfile;
   receiver: UserProfile;
@@ -62,6 +68,30 @@ export type KudosCardData = {
   heart_count: number;
   liked_by_me: boolean;
   can_like: boolean;
+  mentions?: { user_id: string; name: string }[];
+};
+
+/**
+ * Input shape for the submitKudos server action.
+ * Source of truth lives here; app/_actions/sun-kudos.ts imports this type
+ * instead of declaring its own local copy.
+ */
+export type SubmitKudosInput = {
+  to_user: string;
+  /** Raw HTML from the Tiptap editor — sanitized inside the action before persistence. */
+  message: string;
+  title: string;
+  is_anonymous: boolean;
+  /** Required when is_anonymous = true; must be 1–40 chars after trim. */
+  anonymous_nickname?: string | null;
+  /** Optional feature hashtag (danh hiệu). */
+  feature_hashtag_id?: string | null;
+  /** ≥1 and ≤5 small hashtag ids (required per clarification). */
+  small_hashtag_ids: string[];
+  /** ≤5 already-uploaded storage paths. */
+  image_paths: string[];
+  /** @-mention user ids. Deduped, self-dropped, capped at 20 inside the action. */
+  mention_user_ids: string[];
 };
 
 export type KudosFilters = {

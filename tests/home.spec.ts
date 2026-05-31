@@ -53,6 +53,17 @@ test.describe("/ — home page", () => {
     expect(bareHash).toBe(0);
   });
 
+  test("countdown prelaunch — Coming soon teaser + DAYS/HOURS/MINUTES shown before event", async ({
+    page,
+  }) => {
+    // Seeded event date (2026-12-31) is still in the future, so the page is in
+    // its prelaunch state: the teaser is visible and three units render.
+    await expect(page.getByText("Coming soon")).toBeVisible();
+    await expect(page.getByText("DAYS")).toBeVisible();
+    await expect(page.getByText("HOURS")).toBeVisible();
+    await expect(page.getByText("MINUTES")).toBeVisible();
+  });
+
   test("kudos banner — Chi tiết button links to /sun-kudos", async ({
     page,
   }) => {

@@ -27,6 +27,8 @@ function buildDbCard(over: Partial<DbKudosCard> = {}): DbKudosCard {
   return {
     id: "k1",
     message: "Cảm ơn nhé!",
+    title: null,
+    is_anonymous: false,
     created_at: "2026-05-26T08:05:00Z",
     sender: buildUser({ user_id: "u-sender", full_name_vi: "Sender" }),
     receiver: buildUser({ user_id: "u-receiver", full_name_vi: "Receiver" }),
@@ -66,6 +68,27 @@ describe("adaptKudosCard()", () => {
       buildDbCard({ created_at: "2026-05-26T08:05:00Z" })
     );
     expect(ui.createdAt).toMatch(/^\d{2}:\d{2} - \d{2}\/\d{2}\/\d{4}$/);
+  });
+
+  // Regression: formatCreatedAt must be timezone-deterministic. It runs inside
+  // client components on both the SSR and hydration passes; timezone-local
+  // getters produced different strings per pass → React hydration mismatch →
+  // "Performance.measure(...) cannot have a negative time stamp". The formatter
+  // now pins Asia/Ho_Chi_Minh (UTC+7), so 08:05Z is always 15:05 regardless of
+  // the runtime's local timezone.
+  it("formats createdAt in fixed Vietnam time (UTC+7), independent of runtime TZ", () => {
+    const original = process.env.TZ;
+    try {
+      for (const tz of ["UTC", "America/New_York", "Asia/Ho_Chi_Minh"]) {
+        process.env.TZ = tz;
+        const ui = adaptKudosCard(
+          buildDbCard({ created_at: "2026-05-26T08:05:00Z" })
+        );
+        expect(ui.createdAt).toBe("15:05 - 26/05/2026");
+      }
+    } finally {
+      process.env.TZ = original;
+    }
   });
 
   it("falls back to raw string on invalid date", () => {

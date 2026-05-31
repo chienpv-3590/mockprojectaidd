@@ -13,6 +13,8 @@ type KudosFeedProps = {
   onHeartToggle?: (id: string) => void;
   /** Copy-link handler (shows the shared success toast — same as Highlight). */
   onCopyLink?: (id: string) => void;
+  /** Open the kudos detail popup (no page navigation). */
+  onViewDetail?: (id: string) => void;
 };
 
 /**
@@ -33,6 +35,7 @@ export function KudosFeed({
   onLoadMore,
   onHeartToggle,
   onCopyLink,
+  onViewDetail,
 }: KudosFeedProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +77,7 @@ export function KudosFeed({
               variant="feed"
               onHeartToggle={onHeartToggle}
               onCopyLink={onCopyLink}
+              onViewDetail={onViewDetail}
             />
           ))}
         </div>

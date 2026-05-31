@@ -10,6 +10,9 @@ import { heroRankFromSenderCount } from "./hero-rank";
 const KUDOS_SELECT = `
   id,
   message,
+  title,
+  is_anonymous,
+  anonymous_nickname,
   created_at,
   from_user,
   to_user,
@@ -257,6 +260,81 @@ export async function getAllKudos(
     rows: normalized,
     nextCursor: hasMore ? pageRows[pageRows.length - 1].created_at : null,
   };
+}
+
+/**
+ * Cursor-based paginated feed scoped to ONE user — kudos they RECEIVED
+ * (to_user) or SENT (from_user). Optional `year` narrows by created_at.
+ * Same return shape as getAllKudos so KudosCard renders unchanged.
+ */
+export async function getUserKudos(
+  supabase: SupabaseClient,
+  userId: string,
+  direction: "received" | "sent",
+  opts?: { cursor?: string; limit?: number; year?: number }
+): Promise<{ rows: KudosCardData[]; nextCursor: string | null }> {
+  const { cursor, limit = 10, year } = opts ?? {};
+  const authUserId = await getAuthUserId(supabase);
+  const col = direction === "received" ? "to_user" : "from_user";
+
+  let query = supabase.from("kudos").select(KUDOS_SELECT).eq(col, userId);
+  if (typeof year === "number") {
+    query = query
+      .gte("created_at", `${year}-01-01T00:00:00.000Z`)
+      .lt("created_at", `${year + 1}-01-01T00:00:00.000Z`);
+  }
+  if (cursor) query = query.lt("created_at", cursor);
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(limit + 1);
+
+  if (error) {
+    if (isMissingTable(error)) return { rows: [], nextCursor: null };
+    throw error;
+  }
+
+  const rows = (data ?? []) as unknown as RawKudosRow[];
+  const profileMap = await hydrateProfileMap(supabase, rows);
+  for (const r of rows) attachProfiles(r, profileMap);
+
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+  const normalized = await Promise.all(
+    pageRows.map((row) => normalizeRow(supabase, row, authUserId))
+  );
+
+  return {
+    rows: normalized,
+    nextCursor: hasMore ? pageRows[pageRows.length - 1].created_at : null,
+  };
+}
+
+/**
+ * Distinct years (desc) in which the user received OR sent kudos — feeds the
+ * awards year dropdown. Returns [] when the kudos table is missing.
+ */
+export async function getUserKudosYears(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("kudos")
+    .select("created_at")
+    .or(`to_user.eq.${userId},from_user.eq.${userId}`)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) {
+    if (isMissingTable(error)) return [];
+    throw error;
+  }
+  const years = new Set<number>();
+  for (const r of (data ?? []) as Array<{ created_at: string }>) {
+    const y = new Date(r.created_at).getFullYear();
+    if (!Number.isNaN(y)) years.add(y);
+  }
+  return Array.from(years).sort((a, b) => b - a);
 }
 
 /**

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getCachedUser } from "@/lib/supabase/cached-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
 import { getProfile, getProfileStats } from "@/lib/data/profile";
@@ -19,12 +20,21 @@ import { adaptSecretBoxRecipient } from "@/app/_components/sun-kudos/_lib/kudos-
 
 export const metadata = { title: "Sun* Kudos — SAA 2025" };
 
-export default async function SunKudosPage() {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type PageProps = {
+  searchParams: Promise<{ compose?: string }>;
+};
+
+export default async function SunKudosPage({ searchParams }: PageProps) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Shared cache with the root layout — see `lib/supabase/cached-auth.ts`.
+  const user = await getCachedUser();
   if (!user) redirect("/login?next=/sun-kudos");
+
+  // Resolve ?compose=<uuid> deep-link — validate uuid before any DB call
+  const { compose } = await searchParams;
+  const composeId = compose && UUID_RE.test(compose) ? compose : null;
 
   // Parallel-fetch all data needed for the initial render
   const [
@@ -56,6 +66,9 @@ export default async function SunKudosPage() {
     getSpotlightRecipients(supabase),
     getTotalKudosCount(supabase),
   ]);
+
+  // Resolve compose recipient — only when a valid uuid was provided
+  const initialRecipient = composeId ? await getProfile(supabase, composeId) : null;
 
   const stats: SidebarStats = {
     kudosReceived: profileStats.received,
@@ -98,7 +111,7 @@ export default async function SunKudosPage() {
       />
 
       <main className="flex-1">
-        <LiveBoardClient initial={initial} currentUserId={user.id} />
+        <LiveBoardClient initial={initial} currentUserId={user.id} initialRecipient={initialRecipient} />
       </main>
 
       <Footer />

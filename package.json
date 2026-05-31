@@ -17,6 +17,12 @@
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
+    "@tiptap/extension-link": "^3.23.6",
+    "@tiptap/extension-mention": "^3.23.6",
+    "@tiptap/pm": "^3.23.6",
+    "@tiptap/react": "^3.23.6",
+    "@tiptap/starter-kit": "^3.23.6",
+    "@tiptap/suggestion": "^3.23.6",
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
@@ -25,7 +31,8 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-zoom-pan-pinch": "^4.0.3"
+    "react-zoom-pan-pinch": "^4.0.3",
+    "sanitize-html": "^2.17.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
@@ -36,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^6.0.2",
     "dotenv": "^17.4.2",
     "eslint": "^9",

@@ -67,7 +67,9 @@ describe("<RecipientPicker />", () => {
     await user.type(input, "bo");
     // 300ms debounce → wait for it
     await waitFor(() => expect(search).toHaveBeenCalled(), { timeout: 1500 });
-    expect(search.mock.calls.at(-1)?.[0]).toBe("bo");
+    // Cast to string[][] so TypeScript doesn't infer the empty-tuple type from the mock
+    const lastArg = (search.mock.calls as string[][]).at(-1)?.[0];
+    expect(lastArg).toBe("bo");
     await waitFor(() =>
       expect(screen.getByText("Bob")).toBeInTheDocument()
     );
