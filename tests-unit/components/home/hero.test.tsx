@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Hero } from "@/app/_components/home/hero";
+import { CountdownTimer } from "@/app/_components/home/countdown-timer";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
@@ -13,9 +14,16 @@ describe("<Hero />", () => {
     expect(screen.getByAltText("ROOT FURTHER")).toBeInTheDocument();
   });
 
-  it("renders the 'Comming soon' heading text", () => {
+  it("renders the 'Coming soon' teaser via the countdown slot (prelaunch)", () => {
+    // The label now belongs to the countdown component, which only shows it
+    // before the event starts (null date → prelaunch state).
+    render(<Hero countdownSlot={<CountdownTimer eventDateIso={null} />} />);
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+  });
+
+  it("does not hardcode its own 'Coming soon' label", () => {
     render(<Hero />);
-    expect(screen.getByText("Comming soon")).toBeInTheDocument();
+    expect(screen.queryByText(/Comming soon|Coming soon/)).not.toBeInTheDocument();
   });
 
   it("renders the event date", () => {

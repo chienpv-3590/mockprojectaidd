@@ -7,7 +7,7 @@ import { test, expect } from "./fixtures/auth";
  *
  * Covers redesign behaviors not in the base sun-kudos.spec.ts:
  * - word cloud renders recipient names (B.7)
- * - node click → Kudos detail / profile fallback (B.7, TC 33ca8f8a/31693bb7)
+ * - node click → always navigates to /sun-kudos/profile/{userId} (B.7)
  * - activity log strip "HH:MM <name> đã nhận được một Kudos mới"
  * - "N KUDOS" count from DB (B.7.1)
  * - search highlights matching node (B.7.3)
@@ -75,13 +75,13 @@ test.describe("/sun-kudos — Spotlight Board redesign", () => {
     }
   });
 
-  test("SPOT-004 — node click navigates to Kudos detail or profile", async ({ page }) => {
+  test("SPOT-004 — node click navigates to the user's profile page", async ({ page }) => {
     const count = await waitForCloud(page);
     test.skip(count === 0, "No spotlight nodes seeded — skipping click nav");
 
     await cloudTextNodes(page).first().click();
-    await page.waitForURL(/\/sun-kudos\/(profile\/)?[a-f0-9-]{8,}/i, { timeout: 5000 });
-    expect(page.url()).toMatch(/\/sun-kudos\/(profile\/)?[a-f0-9-]{8,}/i);
+    await page.waitForURL(/\/sun-kudos\/profile\/[a-f0-9-]{8,}/i, { timeout: 5000 });
+    expect(page.url()).toMatch(/\/sun-kudos\/profile\/[a-f0-9-]{8,}/i);
   });
 
   test("SPOT-005 — activity log strip shows 'đã nhận được một Kudos mới'", async ({ page }) => {

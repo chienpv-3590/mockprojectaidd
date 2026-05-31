@@ -106,6 +106,16 @@ describe("<KudosCard />", () => {
     expect(onView).toHaveBeenCalledWith("k9");
   });
 
+  it("feed variant: clicking the message body opens detail via onViewDetail", async () => {
+    const user = userEvent.setup();
+    const onView = vi.fn();
+    render(
+      <KudosCard data={buildCard({ id: "k10" })} variant="feed" onViewDetail={onView} />
+    );
+    await user.click(screen.getByRole("button", { name: "Mở chi tiết kudos" }));
+    expect(onView).toHaveBeenCalledWith("k10");
+  });
+
   it("renders ≤5 image thumbnails when images provided", () => {
     const imgs = Array.from({ length: 8 }, (_, i) => ({
       id: `i-${i}`,

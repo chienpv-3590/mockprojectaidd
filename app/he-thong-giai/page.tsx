@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getCachedUser } from "@/lib/supabase/cached-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAwards } from "@/lib/data/awards";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
@@ -13,9 +14,8 @@ export const metadata = { title: "Hệ thống giải thưởng SAA 2025" };
 
 export default async function HeThongGiaiPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Shared cache with the root layout — see `lib/supabase/cached-auth.ts`.
+  const user = await getCachedUser();
   if (!user) redirect("/login?next=/he-thong-giai");
 
   const [awards, notifications, unreadCount] = await Promise.all([

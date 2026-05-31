@@ -1,50 +1,74 @@
+/**
+ * /sun-kudos/profile/[userId] — Other-user profile page (read-only).
+ *
+ * Layout mirrors the self-profile page but:
+ *  - Redirects to /sun-kudos/profile if the viewer IS the target.
+ *  - No secret box; ProfilePublicClient handles received-only feed.
+ *  - CTA "Gửi Kudos cho người này" deep-links to ?compose=userId.
+ */
+
 import { notFound, redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
+import { getCachedUser } from "@/lib/supabase/cached-auth";
 import { createClient } from "@/lib/supabase/server";
-import { getProfile, getProfileStats } from "@/lib/data/profile";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
+import { getProfile, getProfileStats, getUserHeroRank } from "@/lib/data/profile";
+import { getOwnedIcons } from "@/lib/data/secret-boxes";
+import { getUserKudos, getUserKudosYears } from "@/lib/data/kudos-feed";
 import { Header } from "@/app/_components/home/header";
 import { Footer } from "@/app/_components/home/footer";
 import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
 import { NotificationBell } from "@/app/_components/home/notification-bell";
 import { UserMenu } from "@/app/_components/home/user-menu";
-import { KudosUserAvatar } from "@/app/sun-kudos/_components/kudos-user-avatar";
-import { KudosTierStars } from "@/app/sun-kudos/_components/kudos-tier-stars";
+import { ProfileBanner } from "../_components/profile-banner";
+import { ProfilePublicClient } from "../_components/profile-public-client";
 
-export async function generateMetadata({ params }: { params: Promise<{ userId: string }> }) {
-  const { userId } = await params;
-  const supabase = await createClient();
-  const profile = await getProfile(supabase, userId);
-  if (!profile) return { title: "Sunner | Sun* Kudos" };
-  return { title: `${profile.full_name_vi} | Sun* Kudos` };
-}
-
-const TIER_LABELS = ["–", "Bronze", "Silver", "Gold"] as const;
-
-function StatTile({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div style={{ background: "rgba(255,234,158,0.06)", border: "1px solid rgba(255,234,158,0.15)", borderRadius: 12, padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <span style={{ color: "#FFEA9E", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{value}</span>
-      <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, textAlign: "center" }}>{label}</span>
-    </div>
-  );
-}
+// Static metadata avoids a duplicate `cache()` call to `getProfile` from both
+// `generateMetadata` and the page body. The duplicate cache hit makes React
+// 19's RSC dev perf tracker record the second `await` with a -1 endTime,
+// which then throws "Failed to execute 'measure' on 'Performance':
+// '<Component>' cannot have a negative time stamp." (see vercel/next.js#86060).
+// The viewer still sees the target Sunner's full name rendered in the page's
+// banner (Section A) once the page mounts — this only affects the document
+// <title>.
+export const metadata = { title: "Sunner | Sun* Kudos" };
 
 export default async function ProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
+  // getCachedUser() is React.cache()-deduplicated: the root layout already
+  // called it for the FAB auth gate, so this resolves from the same promise
+  // instead of issuing a second independent auth.getUser() async span. That
+  // second span was the trigger for the RSC perf tracker negative-timestamp
+  // error (vercel/next.js#86060).
+  // Auth gate + self-redirect are handled by proxy.ts (middleware), NOT here.
+  // An in-page redirect()/notFound() throws before any child renders, leaving
+  // React 19's RSC dev perf tracker with childrenEndTime = -Infinity, which
+  // then throws "Failed to execute 'measure' on 'Performance': '<ProfilePage>'
+  // cannot have a negative time stamp." (vercel/next.js#86060). Doing the
+  // redirect at the edge in proxy.ts avoids entering the page at all.
+  const user = await getCachedUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) redirect(`/login?next=/sun-kudos/profile/${userId}`);
 
-  const [profile, stats, notifications, unreadCount] = await Promise.all([
-    getProfile(supabase, userId),
-    getProfileStats(supabase, userId),
-    getNotifications(supabase, user.id, 10),
-    getUnreadCount(supabase, user.id),
-  ]);
+  const years = await getUserKudosYears(supabase, userId);
+  const initialYear = years[0] ?? new Date().getFullYear();
+
+  const [notifications, unreadCount, profile, profileStats, heroRank, ownedIcons, feedResult] =
+    await Promise.all([
+      getNotifications(supabase, user.id, 10),
+      getUnreadCount(supabase, user.id),
+      getProfile(supabase, userId),
+      getProfileStats(supabase, userId),
+      getUserHeroRank(supabase, userId),
+      getOwnedIcons(supabase, userId),
+      getUserKudos(supabase, userId, "received", { year: initialYear }),
+    ]);
 
   if (!profile) notFound();
 
+  // Header shows the VIEWER's own identity, not the target profile.
   const userProps = {
     name: user.user_metadata?.full_name ?? user.email ?? "Người dùng",
     email: user.email ?? "",
@@ -52,47 +76,108 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#00101A]">
+    <div className="flex min-h-screen flex-col" style={{ background: "#00101A" }}>
       <Header
         languageSlot={<LanguageSwitcher />}
-        notificationSlot={<NotificationBell initialNotifications={notifications} initialUnreadCount={unreadCount} />}
+        notificationSlot={
+          <NotificationBell initialNotifications={notifications} initialUnreadCount={unreadCount} />
+        }
         userSlot={<UserMenu user={userProps} />}
       />
-      <main className="flex-1 px-4 py-10 sm:px-6" style={{ fontFamily: "var(--font-montserrat), system-ui, sans-serif" }}>
-        <div className="mx-auto max-w-2xl">
-          <Link
-            href="/sun-kudos"
-            style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 32 }}
-            className="hover:text-white transition-colors"
-          >
-            ← Quay lại Sun Kudos
-          </Link>
 
-          {/* Profile card */}
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,234,158,0.12)", borderRadius: 16, padding: "36px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ border: "2px solid rgba(255,234,158,0.3)", borderRadius: "50%", overflow: "hidden" }}>
-              <KudosUserAvatar url={profile.avatar_url} name={profile.full_name_vi} size={96} />
-            </div>
-            <h1 style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 22, textAlign: "center", margin: 0 }}>
-              {profile.full_name_vi}
-            </h1>
-            {(profile.department_code ?? profile.department_name_vi) && (
-              <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, margin: 0 }}>
-                {profile.department_code ?? profile.department_name_vi}
-              </p>
-            )}
-            <KudosTierStars tier={profile.tier} size={20} />
+      <main className="flex flex-1 flex-col">
+        {/* Keyvisual banner + Section A overlay */}
+        <div className="relative w-full" style={{ minHeight: 468 }}>
+          <div className="absolute inset-0 overflow-hidden">
+            <Image src="/home/spotlight-bg.png" alt="" fill priority className="object-cover" aria-hidden />
           </div>
+          <div className="absolute inset-0 overflow-hidden">
+            <Image src="/home/spotlight-mesh.png" alt="" fill className="object-cover mix-blend-screen" aria-hidden />
+          </div>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <Image src="/home/spotlight-ribbon.png" alt="" fill className="object-cover" aria-hidden />
+          </div>
+          <div
+            className="absolute inset-0"
+            aria-hidden
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(0,16,26,0.55) 0%, rgba(0,7,12,0.75) 100%)",
+            }}
+          />
 
-          {/* Stats grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-            <StatTile label="Số Kudos nhận" value={stats.received} />
-            <StatTile label="Số Kudos đã gửi" value={stats.sent} />
-            <StatTile label="Số tim nhận" value={stats.hearts} />
-            <StatTile label="Hoa thị tier" value={TIER_LABELS[stats.tier] ?? "–"} />
+          <div className="relative z-10 flex w-full flex-col items-center justify-center px-4 py-10 sm:px-10 lg:px-20">
+            <div className="w-full max-w-5xl">
+              <ProfileBanner
+                name={profile.full_name_vi}
+                employeeCode={profile.title ?? profile.department_code ?? profile.employee_code ?? ""}
+                avatarUrl={profile.avatar_url}
+                heroRank={heroRank}
+                ownedIcons={ownedIcons}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Content area — CTA + back link + stats + feed */}
+        <div
+          className="mx-auto flex w-full max-w-3xl flex-col px-4 sm:px-6 lg:px-8"
+          style={{ gap: "64px", paddingTop: "64px", paddingBottom: "120px" }}
+        >
+          {/* Back link + CTA row */}
+          <div className="flex flex-col items-start" style={{ gap: "16px" }}>
+            <Link
+              href="/sun-kudos"
+              style={{
+                color: "rgba(255,255,255,0.5)",
+                fontSize: 14,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+              className="transition-colors hover:text-white"
+            >
+              ← Quay lại Sun Kudos
+            </Link>
+
+            {/* CTA — deep-link to compose for this user */}
+            <Link
+              href={`/sun-kudos?compose=${userId}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#FFEA9E",
+                color: "#00101A",
+                fontFamily: "var(--font-montserrat), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: 15,
+                borderRadius: 8,
+                padding: "14px 24px",
+                textDecoration: "none",
+                alignSelf: "stretch",
+              }}
+            >
+              Gửi Kudos cho người này
+            </Link>
+          </div>
+
+          <ProfilePublicClient
+            targetUserId={userId}
+            initialStats={{
+              received: profileStats.received,
+              sent: profileStats.sent,
+              hearts: profileStats.hearts,
+            }}
+            initialRows={feedResult.rows}
+            initialNextCursor={feedResult.nextCursor}
+            years={years.length > 0 ? years : [initialYear]}
+            initialYear={initialYear}
+          />
+        </div>
       </main>
+
       <Footer />
     </div>
   );

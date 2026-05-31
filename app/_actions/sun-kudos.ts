@@ -2,32 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getKudosById, getHighlightKudos, getAllKudos } from "@/lib/data/kudos-feed";
-import type { KudosCardData, KudosFilters, UserProfile } from "@/lib/data/types";
+import { getKudosById, getHighlightKudos, getAllKudos, getUserKudos } from "@/lib/data/kudos-feed";
+import { sanitizeKudosHtml, kudosHtmlPlainTextLength } from "@/lib/sanitize/kudos-html";
+import type { KudosCardData, KudosFilters, UserProfile, SubmitKudosInput } from "@/lib/data/types";
+import { pickRandomRewardIcon, getSecretBoxIcon } from "@/lib/sun-kudos/secret-box-icons";
+import { getProfile, getProfileStats, getUserHeroRank } from "@/lib/data/profile";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type SubmitKudosInput = {
-  to_user: string;
-  message: string;
-  feature_hashtag_id: string;
-  small_hashtag_ids: string[]; // 0..5
-  image_paths: string[]; // 0..5 already uploaded storage paths
-};
-
-// ---------------------------------------------------------------------------
-// Reward pool for secret boxes
-// ---------------------------------------------------------------------------
-
-const REWARDS = [
-  "1 áo phông SAA",
-  "Voucher cafe 100k",
-  "Mũ SAA 2025",
-  "Sticker pack",
-  "Voucher lunch 200k",
-];
+// NOTE: A "use server" module may ONLY export async functions (Next.js 16).
+// `SubmitKudosInput` is a type — import it from "@/lib/data/types" directly.
+// Re-exporting it here previously caused: ReferenceError: SubmitKudosInput is
+// not defined (the directive transform emitted a runtime server reference).
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -35,8 +19,15 @@ const REWARDS = [
 
 /**
  * Submit a kudos from the current authenticated user to another user.
- * Calls the atomic Postgres RPC to insert kudos + hashtags + images
- * in a single transaction and awards secret_boxes at milestones.
+ *
+ * Validation error codes (thrown as Error messages):
+ *   cannot_send_to_self   — to_user === auth.uid()
+ *   invalid_title         — title empty or > 120 chars after trim
+ *   invalid_message_length — plain-text content outside 1–1000 chars
+ *   hashtag_required      — small_hashtag_ids is empty
+ *   too_many_hashtags     — small_hashtag_ids.length > 5
+ *   too_many_images       — image_paths.length > 5
+ *   nickname_required     — is_anonymous=true but anonymous_nickname missing/empty or > 40 chars
  */
 export async function submitKudos(
   input: SubmitKudosInput,
@@ -48,20 +39,55 @@ export async function submitKudos(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("unauthenticated");
 
-  // Validate inputs
+  // --- self-send guard ---
   if (input.to_user === user.id) throw new Error("cannot_send_to_self");
-  if (!input.message || input.message.length < 1 || input.message.length > 2000)
+
+  // --- title validation (1–120 chars) ---
+  const trimmedTitle = (input.title ?? "").trim();
+  if (trimmedTitle.length < 1 || trimmedTitle.length > 120)
+    throw new Error("invalid_title");
+
+  // --- message: sanitize then validate plain-text length (1–1000) ---
+  const sanitizedMessage = sanitizeKudosHtml(input.message ?? "");
+  const plainTextLen = kudosHtmlPlainTextLength(sanitizedMessage);
+  if (plainTextLen < 1 || plainTextLen > 1000)
     throw new Error("invalid_message_length");
-  if (input.small_hashtag_ids.length > 5) throw new Error("too_many_hashtags");
-  if (input.image_paths.length > 5) throw new Error("too_many_images");
+
+  // --- small hashtags: required ≥1, max 5 ---
+  if (!input.small_hashtag_ids || input.small_hashtag_ids.length === 0)
+    throw new Error("hashtag_required");
+  if (input.small_hashtag_ids.length > 5)
+    throw new Error("too_many_hashtags");
+
+  // --- images: max 5 ---
+  if ((input.image_paths ?? []).length > 5)
+    throw new Error("too_many_images");
+
+  // --- anonymous nickname ---
+  let resolvedNickname: string | null = null;
+  if (input.is_anonymous) {
+    const trimmedNickname = (input.anonymous_nickname ?? "").trim();
+    if (trimmedNickname.length < 1 || trimmedNickname.length > 40)
+      throw new Error("nickname_required");
+    resolvedNickname = trimmedNickname;
+  }
+
+  // --- mentions: dedupe, drop self, cap at 20 ---
+  const mentionIds = Array.from(
+    new Set((input.mention_user_ids ?? []).filter((id) => id !== user.id))
+  ).slice(0, 20);
 
   const { data, error } = await supabase.rpc("submit_kudos_atomic", {
-    p_from_user: user.id,
-    p_to_user: input.to_user,
-    p_message: input.message,
-    p_hashtag_id: input.feature_hashtag_id,
-    p_small_tags: input.small_hashtag_ids,
-    p_image_paths: input.image_paths,
+    p_from_user:          user.id,
+    p_to_user:            input.to_user,
+    p_message:            sanitizedMessage,
+    p_hashtag_id:         input.feature_hashtag_id ?? null,
+    p_small_tags:         input.small_hashtag_ids,
+    p_image_paths:        input.image_paths ?? [],
+    p_title:              trimmedTitle,
+    p_is_anonymous:       input.is_anonymous,
+    p_anonymous_nickname: resolvedNickname,
+    p_mention_ids:        mentionIds,
   });
 
   if (error) throw new Error(error.message);
@@ -165,12 +191,13 @@ export async function toggleHeart(input: {
 }
 
 /**
- * Open a secret box owned by the current user.
- * Picks a random reward from the hardcoded pool and marks the box as opened.
+ * Open a secret box owned by the current user. Awards a random one of the
+ * exclusive SAA collectible icons and marks the box as opened. The won icon is
+ * persisted (reward_icon) so it appears in the profile "Bộ sưu tập icon" row.
  */
 export async function openSecretBox(input: {
   box_id: string;
-}): Promise<{ reward_label_vi: string }> {
+}): Promise<{ reward_icon: number; reward_label_vi: string }> {
   const supabase = await createClient();
 
   const {
@@ -189,22 +216,34 @@ export async function openSecretBox(input: {
   if (!box || box.owner !== user.id) throw new Error("box_not_found");
   if (box.status !== "unopened") throw new Error("box_already_opened");
 
-  // Pick a random reward
-  const reward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
+  // Award a random collectible icon using the weighted distribution from
+  // SECRET_BOX_REWARD_WEIGHTS (spec C of MoMorph screen J3-4YFIpMM).
+  const rewardIcon = pickRandomRewardIcon();
+  const rewardLabel = getSecretBoxIcon(rewardIcon)?.label ?? `Icon ${rewardIcon}`;
 
-  const { error: updateErr } = await supabase
+  // .eq("status","unopened") guards against the SELECT-then-UPDATE race:
+  // a concurrent second open (second tab, network retry) would otherwise
+  // overwrite reward_icon silently. PostgREST returns the affected rows;
+  // an empty array means another caller already opened this box.
+  const { data: updated, error: updateErr } = await supabase
     .from("secret_boxes")
     .update({
       status: "opened",
-      reward_label_vi: reward,
+      reward_icon: rewardIcon,
+      reward_label_vi: rewardLabel,
       opened_at: new Date().toISOString(),
     })
-    .eq("id", input.box_id);
+    .eq("id", input.box_id)
+    .eq("status", "unopened")
+    .select("id");
 
   if (updateErr) throw new Error(updateErr.message);
+  if (!updated || updated.length === 0) throw new Error("box_already_opened");
 
   revalidatePath("/sun-kudos");
-  return { reward_label_vi: reward };
+  revalidatePath("/sun-kudos/profile");
+  revalidatePath(`/sun-kudos/profile/${user.id}`);
+  return { reward_icon: rewardIcon, reward_label_vi: rewardLabel };
 }
 
 // ---------------------------------------------------------------------------
@@ -244,6 +283,35 @@ export async function refetchFeed(
 }
 
 /**
+ * Fetch a page of kudos — received or sent — optionally narrowed by year and
+ * cursor-paginated. Powers the profile feed tabs.
+ *
+ * Authentication is always required. When `targetUserId` is a valid UUID it
+ * selects that user's feed (public data, same as the live board). Any other
+ * value — including undefined — falls back to the logged-in user's feed,
+ * preserving full back-compat with existing self-profile callers.
+ */
+export async function refetchUserKudos(
+  direction: "received" | "sent",
+  cursor?: string,
+  year?: number,
+  targetUserId?: string
+): Promise<{ rows: KudosCardData[]; nextCursor: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { rows: [], nextCursor: null };
+
+  const isUuid = (s: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  const userId =
+    targetUserId && isUuid(targetUserId) ? targetUserId : user.id;
+
+  return getUserKudos(supabase, userId, direction, { cursor, year });
+}
+
+/**
  * Search user profiles by name or employee_code.
  * Used by the submit-kudos dialog recipient picker.
  */
@@ -277,6 +345,44 @@ export async function searchSunners(q: string): Promise<UserProfile[]> {
     avatar_url: row.avatar_url ?? null,
     tier: 0,
   }));
+}
+
+/**
+ * Hover-card payload for an avatar — name/dept/title + Hero rank + counts.
+ * Returns null when the userId is invalid or the profile cannot be read.
+ */
+export type AvatarHoverData = {
+  profile: UserProfile;
+  received: number;
+  sent: number;
+  hero_rank: string | null;
+};
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getAvatarHoverData(
+  userId: string
+): Promise<AvatarHoverData | null> {
+  if (!userId || !UUID_REGEX.test(userId)) return null;
+  const supabase = await createClient();
+  // Auth gate — hover data is only available to signed-in users.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [profile, stats, heroRank] = await Promise.all([
+    getProfile(supabase, userId),
+    getProfileStats(supabase, userId),
+    getUserHeroRank(supabase, userId),
+  ]);
+  if (!profile) return null;
+  return {
+    profile,
+    received: stats.received,
+    sent: stats.sent,
+    hero_rank: heroRank,
+  };
 }
 
 /**

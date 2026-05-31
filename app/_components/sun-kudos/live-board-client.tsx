@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { KudosCardData as DbCard, KudosFilters } from "@/lib/data/types";
+import type { KudosCardData as DbCard, KudosFilters, SubmitKudosInput } from "@/lib/data/types";
 import type { Department, Hashtag, SpotlightNode, UserProfile } from "@/lib/data/types";
 import type { KudosCardData, SidebarStats, SecretBoxRecipient } from "./types";
 import { adaptKudosCard, adaptKudosCards } from "./_lib/kudos-adapter";
@@ -19,6 +19,8 @@ import { SpotlightContainer } from "./spotlight-container";
 import { KudosFeed } from "./kudos-feed";
 import { KudosSidebar } from "./kudos-sidebar";
 import { SubmitKudosDialog } from "./submit-kudos-dialog";
+import { KudosDetailDialog } from "./kudos-detail-dialog";
+import { ComposeKudosProvider } from "./compose-kudos-context";
 import {
   fetchKudosCard,
   refetchHighlight,
@@ -28,7 +30,7 @@ import {
   toggleHeart,
   openSecretBox,
   getNextUnopenedBox,
-} from "@/app/sun-kudos/actions";
+} from "@/app/_actions/sun-kudos";
 import { uploadKudosImage } from "@/lib/storage/kudos-images";
 
 // ---------------------------------------------------------------------------
@@ -51,13 +53,14 @@ export type LiveBoardInitialData = {
 type LiveBoardClientProps = {
   initial: LiveBoardInitialData;
   currentUserId: string;
+  initialRecipient?: UserProfile | null;
 };
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps) {
+export function LiveBoardClient({ initial, currentUserId, initialRecipient }: LiveBoardClientProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { toasts, show: showToast, dismiss: dismissToast } = useToast();
@@ -90,7 +93,33 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
   const [highlightedUserId, setHighlightedUserId] = useState<string | undefined>();
 
   // ── Dialog state ──────────────────────────────────────────────────────────
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // Auto-open when a compose recipient was resolved from ?compose= deep-link
+  const [dialogOpen, setDialogOpen] = useState(!!initialRecipient);
+  // Dynamic recipient set by avatar hover-card "Gửi KUDO" — falls back to
+  // deep-link `initialRecipient` when no hover-card has fired yet.
+  const [hoverRecipient, setHoverRecipient] = useState<UserProfile | null>(null);
+
+  const handleOpenCompose = useCallback((recipient: UserProfile) => {
+    setHoverRecipient(recipient);
+    setDialogOpen(true);
+  }, []);
+
+  const handleCloseCompose = useCallback(() => {
+    setDialogOpen(false);
+    setHoverRecipient(null);
+  }, []);
+
+  const composeContextValue = useMemo(
+    () => ({ openCompose: handleOpenCompose }),
+    [handleOpenCompose]
+  );
+
+  // ── Detail popup state (view kudos without leaving the board) ─────────────
+  const [viewCard, setViewCard] = useState<KudosCardData | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  // Generation guard: a slow fetch must not overwrite the popup after the user
+  // has closed it or opened a different kudos (zombie-state race).
+  const viewFetchGenRef = useRef(0);
 
   // ── Load-more guard (prevent double-fire from IntersectionObserver) ───────
   const loadingMoreRef = useRef(false);
@@ -208,9 +237,6 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
     [filters, applyFilters]
   );
 
-  // Clear all filters at once (the "Xoá bộ lọc" button).
-  const handleClearFilters = useCallback(() => applyFilters({}), [applyFilters]);
-
   // ---------------------------------------------------------------------------
   // Heart toggle — optimistic
   // ---------------------------------------------------------------------------
@@ -296,10 +322,34 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
   // View detail
   // ---------------------------------------------------------------------------
 
+  // Open the detail popup instead of navigating. Fetch the full card (RLS-safe,
+  // includes signed image URLs) then adapt to the component shape — same path
+  // the realtime INSERT handler uses. The standalone /sun-kudos/[id] page stays
+  // for shared/deep links (copy-link still points there).
   const handleViewDetail = useCallback(
-    (id: string) => router.push(`/sun-kudos/${id}`),
-    [router]
+    async (id: string) => {
+      const gen = ++viewFetchGenRef.current;
+      setViewLoading(true);
+      try {
+        const full = await fetchKudosCard(id);
+        if (viewFetchGenRef.current !== gen) return; // superseded by close/re-open
+        if (full) setViewCard(adaptKudosCard(full));
+        else showToast("Không tìm thấy kudos.", "error");
+      } catch {
+        if (viewFetchGenRef.current === gen)
+          showToast("Không thể tải kudos, vui lòng thử lại.", "error");
+      } finally {
+        if (viewFetchGenRef.current === gen) setViewLoading(false);
+      }
+    },
+    [showToast]
   );
+
+  const handleCloseDetail = useCallback(() => {
+    viewFetchGenRef.current++; // invalidate any in-flight fetch
+    setViewCard(null);
+    setViewLoading(false);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Load more feed
@@ -358,13 +408,7 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
   // ---------------------------------------------------------------------------
 
   const handleSubmitKudos = useCallback(
-    async (input: {
-      to_user: string;
-      message: string;
-      feature_hashtag_id: string;
-      small_hashtag_ids: string[];
-      image_paths: string[];
-    }) => {
+    async (input: SubmitKudosInput) => {
       await submitKudos(input);
       showToast("Đã gửi lời cảm ơn!");
     },
@@ -378,10 +422,12 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
   const handleUploadImage = useCallback(
     async (file: File): Promise<string> => {
       const buf = await file.arrayBuffer();
-      const { path } = await uploadKudosImage(supabase, "temp", buf, file.type);
+      // Path prefix MUST be the uploader's UID — the kudos-images storage RLS
+      // INSERT policy enforces auth.uid() = (string_to_array(name, '/'))[1].
+      const { path } = await uploadKudosImage(supabase, currentUserId, buf, file.type);
       return path;
     },
-    [supabase]
+    [supabase, currentUserId]
   );
 
   // ---------------------------------------------------------------------------
@@ -397,16 +443,10 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
   // Spotlight interactions
   // ---------------------------------------------------------------------------
 
-  // Per Spotlight spec B.7: click node → open Kudos detail. We route to the
-  // most recent Kudos the user received (latest_kudos_id, picked server-side
-  // in lib/data/spotlight). Fallback to profile if user has no Kudos yet.
+  // Click node in SPOTLIGHT BOARD → navigate to that user's profile page.
   const handleNodeClick = useCallback(
     (node: SpotlightNode) => {
-      if (node.latest_kudos_id) {
-        router.push(`/sun-kudos/${node.latest_kudos_id}`);
-      } else {
-        router.push(`/sun-kudos/profile/${node.user_id}`);
-      }
+      router.push(`/sun-kudos/profile/${node.user_id}`);
     },
     [router]
   );
@@ -419,17 +459,12 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
     setHighlightedUserId(match?.user_id);
   }, [spotlightNodes]);
 
-  // ── Sync highlightedUserId back into SpotlightContainer
-  useEffect(() => {
-    // SpotlightContainer manages its own local highlightedUserId state;
-    // we propagate via the searchQuery → SunnerSearchInput → handleSpotlightSearch chain.
-  }, []);
-
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
   return (
+    <ComposeKudosProvider value={composeContextValue}>
     <div className="flex min-h-screen flex-col bg-[#00101A] text-white">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
@@ -454,7 +489,6 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
           selectedDepartmentCode={filters.department_code}
           onSelectHashtag={handleSelectHashtag}
           onSelectDepartment={handleSelectDepartment}
-          onClearFilters={handleClearFilters}
           onHeartToggle={handleHeartToggle}
           onCopyLink={handleCopyLink}
           onViewDetail={handleViewDetail}
@@ -481,6 +515,7 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
               onLoadMore={handleLoadMore}
               onHeartToggle={handleHeartToggle}
               onCopyLink={handleCopyLink}
+              onViewDetail={handleViewDetail}
             />
           </div>
           <KudosSidebar
@@ -494,14 +529,24 @@ export function LiveBoardClient({ initial, currentUserId }: LiveBoardClientProps
       {/* Submit dialog */}
       <SubmitKudosDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleCloseCompose}
         departments={initial.departments}
         featureHashtags={initial.featureHashtags}
         smallHashtags={initial.smallHashtags}
         sunnerSearch={handleSunnerSearch}
         onUpload={handleUploadImage}
         onSubmit={handleSubmitKudos}
+        initialRecipient={hoverRecipient ?? initialRecipient}
+      />
+
+      {/* Detail popup — view a kudos without leaving the board */}
+      <KudosDetailDialog
+        card={viewCard}
+        loading={viewLoading}
+        onClose={handleCloseDetail}
+        onCopyLink={handleCopyLink}
       />
     </div>
+    </ComposeKudosProvider>
   );
 }

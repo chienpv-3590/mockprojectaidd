@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { getCachedUser } from "@/lib/supabase/cached-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getKudosById } from "@/lib/data/kudos-feed";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
@@ -8,8 +9,9 @@ import { Footer } from "@/app/_components/home/footer";
 import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
 import { NotificationBell } from "@/app/_components/home/notification-bell";
 import { UserMenu } from "@/app/_components/home/user-menu";
-import { KudosUserAvatar } from "@/app/sun-kudos/_components/kudos-user-avatar";
-import { KudosTierStars } from "@/app/sun-kudos/_components/kudos-tier-stars";
+import { KudosUserAvatar } from "../_components/kudos-user-avatar";
+import { KudosTierStars } from "../_components/kudos-tier-stars";
+import { AvatarHoverTrigger } from "@/app/_components/sun-kudos/avatar-hover-trigger";
 import type { KudosCardData } from "@/lib/data/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -39,7 +41,9 @@ function UserBlock({ profile }: { profile: KudosCardData["sender"] }) {
       href={`/sun-kudos/profile/${profile.user_id}`}
       className="flex flex-col items-center gap-2 text-center hover:opacity-80 transition-opacity"
     >
-      <KudosUserAvatar url={profile.avatar_url} name={profile.full_name_vi} size={64} />
+      <AvatarHoverTrigger userId={profile.user_id}>
+        <KudosUserAvatar url={profile.avatar_url} name={profile.full_name_vi} size={64} />
+      </AvatarHoverTrigger>
       <div>
         <p style={{ color: "#FFF", fontWeight: 700, fontSize: 15, fontFamily: "var(--font-montserrat), system-ui, sans-serif" }}>
           {profile.full_name_vi}
@@ -58,7 +62,8 @@ function UserBlock({ profile }: { profile: KudosCardData["sender"] }) {
 export default async function KudosDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Shared cache with the root layout — see `lib/supabase/cached-auth.ts`.
+  const user = await getCachedUser();
   if (!user) redirect(`/login?next=/sun-kudos/${id}`);
 
   const [kudos, notifications, unreadCount] = await Promise.all([

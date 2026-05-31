@@ -78,6 +78,7 @@ function buildNode(over: Partial<SpotlightNode> = {}): SpotlightNode {
     name: "Nguyen Van A",
     received_count: 10,
     last_received_at: "2026-05-15T08:30:00",
+    latest_kudos_id: null,
     ...over,
   };
 }

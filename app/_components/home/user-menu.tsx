@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { signOut } from "@/app/_actions/sign-out";
+import { useI18n } from "@/lib/i18n/locale-context";
 
 const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
 
@@ -14,6 +16,7 @@ type UserMenuProps = {
 };
 
 export function UserMenu({ user }: UserMenuProps) {
+  const { dict } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -39,7 +42,7 @@ export function UserMenu({ user }: UserMenuProps) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        aria-label="Account menu"
+        aria-label={dict.userMenu.accountMenu}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -77,14 +80,23 @@ export function UserMenu({ user }: UserMenuProps) {
               </p>
             </div>
           </div>
+          <Link
+            href="/sun-kudos/profile"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block w-full px-4 py-2.5 text-left text-sm text-white/90 transition hover:bg-white/5"
+            style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 500 }}
+          >
+            {dict.userMenu.profile}
+          </Link>
           <form action={signOut}>
             <button
               type="submit"
               role="menuitem"
-              className="w-full cursor-pointer px-4 py-2.5 text-left text-sm text-white/90 transition hover:bg-white/5"
+              className="w-full cursor-pointer border-t border-white/10 px-4 py-2.5 text-left text-sm text-white/90 transition hover:bg-white/5"
               style={{ fontFamily: FONT_MONTSERRAT, fontWeight: 500 }}
             >
-              Đăng xuất
+              {dict.userMenu.signOut}
             </button>
           </form>
         </div>

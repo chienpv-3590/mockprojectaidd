@@ -68,6 +68,36 @@ describe("<CountdownTimer />", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
+  // --- "Coming soon" prelaunch teaser (spec B1.2 / test cases ID-13, 41-43) ---
+
+  it("shows the 'Coming soon' teaser when the date is null (prelaunch fallback)", () => {
+    render(<CountdownTimer eventDateIso={null} />);
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+  });
+
+  it("shows the 'Coming soon' teaser before the event starts (ID-13/ID-43)", () => {
+    vi.setSystemTime(new Date("2026-06-01T00:00:00.000Z").getTime());
+    render(<CountdownTimer eventDateIso="2026-12-31T12:00:00.000Z" />);
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+  });
+
+  it("hides the 'Coming soon' teaser once the event start is reached, keeping 00 tiles (ID-41/ID-42)", () => {
+    vi.setSystemTime(new Date("2026-06-01T00:00:00.000Z").getTime());
+    // Event start already in the past relative to the pinned "now".
+    render(<CountdownTimer eventDateIso="2026-01-01T00:00:00.000Z" />);
+    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+    // Tiles remain at 00 — labels and zeros still present.
+    expect(screen.getByText("DAYS")).toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("stays in prelaunch (teaser shown) for an invalid date without crashing (ID-60)", () => {
+    expect(() =>
+      render(<CountdownTimer eventDateIso="not-a-real-date" />)
+    ).not.toThrow();
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+  });
+
   it("clears the interval on unmount (no timer leak)", () => {
     const clearSpy = vi.spyOn(globalThis, "clearInterval");
     const { unmount } = render(

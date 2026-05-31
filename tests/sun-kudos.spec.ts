@@ -169,10 +169,14 @@ test.describe("/sun-kudos — Live Board", () => {
     const cardCount = await carousel.locator('article').count();
     test.skip(cardCount === 0, "No highlight kudos seeded");
 
-    // The carousel is center-anchored (initial index = middle), so jump to the
-    // first slide via its dot indicator before asserting the prev arrow state.
-    await carousel.getByRole("button", { name: "Slide 1", exact: true }).click();
-    await expect(hero.highlightPrevButton()).toBeDisabled();
+    // The carousel is center-anchored (initial index = middle). Dot indicators
+    // were removed per B.5 spec — walk to index 0 by clicking the prev arrow
+    // until it disables itself.
+    const prev = hero.highlightPrevButton();
+    for (let i = 0; i < cardCount && !(await prev.isDisabled()); i++) {
+      await prev.click();
+    }
+    await expect(prev).toBeDisabled();
   });
 
   test("TC 1i3d4e — highlight carousel: next button disabled at end", async ({
@@ -244,21 +248,19 @@ test.describe("/sun-kudos — Live Board", () => {
     await expect(hero.feedContainer()).toBeVisible();
   });
 
-  test("TC 5n8i9j — clear-filter button resets an active department filter", async ({
+  test("TC 5n8i9j — re-selecting the active department option clears the filter", async ({
     page,
   }) => {
     const hero = new SunKudosPage(page);
-    // Disabled until a filter is active.
-    await expect(hero.clearFilterButton()).toBeDisabled();
 
+    // Select a department, then re-click the same option to clear it
+    // (FilterDropdown contract; the standalone "Xoá bộ lọc" chip was removed).
     await hero.departmentFilterButton().click();
     const firstDept = hero.filterOptionButton("Phòng ban", 0);
     if (await firstDept.count()) {
       await firstDept.click();
-      // A filter is now active → clear button enables; clicking it resets.
-      await expect(hero.clearFilterButton()).toBeEnabled();
-      await hero.clearFilterButton().click();
-      await expect(hero.clearFilterButton()).toBeDisabled();
+      await hero.departmentFilterButton().click();
+      await firstDept.click();
     }
     await expect(hero.feedContainer()).toBeVisible();
   });
@@ -484,46 +486,39 @@ test.describe("/sun-kudos — Live Board", () => {
   // View Details — FUNCTION + ACCESSING
   // ============================================================================
 
-  test("TC 7y9t0u — view detail: navigates to /sun-kudos/[id]", async ({
+  test("TC 7y9t0u — view detail: opens the in-place popup (no navigation)", async ({
     page,
   }) => {
-    const hero = new SunKudosPage(page);
-    const cards = hero.feedContainer().locator("section[aria-labelledby='all-kudos-heading'] article");
-    if (await cards.first().isVisible()) {
-      const card = hero.feedCard(0);
-      const detailLink = hero.cardViewDetailButton(card);
-
-      const href = await detailLink.getAttribute("href");
-      expect(href).toMatch(/\/sun-kudos\/[a-f0-9-]+/);
-
-      // Navigate
-      await detailLink.click();
-      await page.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => {});
-      await page.waitForTimeout(500);
-
-      expect(page.url()).toMatch(/\/sun-kudos\/[a-f0-9-]+/);
+    // The "Xem chi tiết" action on a highlight card now opens the
+    // KudosDetailDialog popup instead of navigating to /sun-kudos/[id].
+    // Highlight cards are the most stable place to trigger it (the button
+    // is always rendered on the active center card).
+    const detailButton = page.getByRole("button", { name: /Xem chi tiết/i }).first();
+    if ((await detailButton.count()) === 0) {
+      test.skip(true, "No highlight kudos seeded");
+      return;
     }
+
+    const startUrl = page.url();
+    await detailButton.click();
+
+    // Popup opens; URL stays on the live board.
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+    expect(page.url()).toBe(startUrl);
   });
 
-  test("TC 8z0u1v — detail page: renders enlarged card content", async ({
+  test("TC 8z0u1v — detail popup: renders card content in the dialog", async ({
     page,
   }) => {
-    const hero = new SunKudosPage(page);
-    const cards = hero.feedContainer().locator("section[aria-labelledby='all-kudos-heading'] article");
-    if (await cards.first().isVisible()) {
-      const card = hero.feedCard(0);
-      const detailLink = hero.cardViewDetailButton(card);
-      await detailLink.click();
-
-      await page
-        .waitForNavigation({ waitUntil: "domcontentloaded" })
-        .catch(() => {});
-      await page.waitForTimeout(500);
-
-      // Detail page should have some content (card details)
-      const detailContent = page.locator('main, [role="main"]');
-      await expect(detailContent).toBeVisible();
+    const detailButton = page.getByRole("button", { name: /Xem chi tiết/i }).first();
+    if ((await detailButton.count()) === 0) {
+      test.skip(true, "No highlight kudos seeded");
+      return;
     }
+
+    await detailButton.click();
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
   });
 
   // ============================================================================

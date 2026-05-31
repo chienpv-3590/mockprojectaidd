@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { MouseEvent } from "react";
+import { useI18n } from "@/lib/i18n/locale-context";
 
 const FONT_MONTSERRAT = "var(--font-montserrat), system-ui, sans-serif";
 const ACTIVE_YELLOW = "#FFEA9E";
@@ -15,10 +16,11 @@ const NAV_STYLE = {
 };
 
 // Shared nav config — also consumed by the footer so labels stay in sync.
+// `labelKey` indexes into dict.nav so labels follow the active locale.
 export const NAV_LINKS = [
-  { label: "About SAA 2025", href: "/" },
-  { label: "Awards Information", href: "/he-thong-giai" },
-  { label: "Sun* Kudos", href: "/sun-kudos" },
+  { labelKey: "about", href: "/" },
+  { labelKey: "awardsInfo", href: "/he-thong-giai" },
+  { labelKey: "kudos", href: "/sun-kudos" },
 ] as const;
 
 export function normalizePath(p: string | null): string {
@@ -48,13 +50,14 @@ const BUTTON_IC_CLASS =
 
 export function NavLinks() {
   const pathname = normalizePath(usePathname());
+  const { dict } = useI18n();
   return (
     <nav aria-label="Main" className="hidden lg:flex items-center gap-2">
       {NAV_LINKS.map((link) => {
         const active = pathname === link.href;
         return (
           <Link
-            key={link.label}
+            key={link.labelKey}
             href={link.href}
             aria-current={active ? "page" : undefined}
             onClick={makeNavClickHandler(active)}
@@ -65,7 +68,7 @@ export function NavLinks() {
                 : BUTTON_IC_CLASS
             }
           >
-            {link.label}
+            {dict.nav[link.labelKey]}
           </Link>
         );
       })}

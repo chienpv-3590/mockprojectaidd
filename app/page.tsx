@@ -1,25 +1,26 @@
 import { redirect } from "next/navigation";
+import { getCachedUser } from "@/lib/supabase/cached-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAwards } from "@/lib/data/awards";
 import { getEventDate } from "@/lib/data/event-settings";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
-import { Header } from "./_components/home/header";
-import { Hero } from "./_components/home/hero";
-import { AwardsGrid } from "./_components/home/awards-grid";
-import { KudosBanner } from "./_components/shared/kudos-banner";
-import { Footer } from "./_components/home/footer";
-import { FloatingFab } from "./_components/home/floating-fab";
-import { RootFurtherDescription } from "./_components/home/root-further-description";
-import { CountdownTimer } from "./_components/home/countdown-timer";
-import { UserMenu } from "./_components/home/user-menu";
-import { NotificationBell } from "./_components/home/notification-bell";
-import { LanguageSwitcher } from "./_components/home/language-switcher";
+import { Header } from "@/app/_components/home/header";
+import { Hero } from "@/app/_components/home/hero";
+import { AwardsGrid } from "@/app/_components/home/awards-grid";
+import { KudosBanner } from "@/app/_components/shared/kudos-banner";
+import { Footer } from "@/app/_components/home/footer";
+import { RootFurtherDescription } from "@/app/_components/home/root-further-description";
+import { CountdownTimer } from "@/app/_components/home/countdown-timer";
+import { UserMenu } from "@/app/_components/home/user-menu";
+import { NotificationBell } from "@/app/_components/home/notification-bell";
+import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // `getCachedUser` is wrapped in React.cache() so this auth check shares one
+  // resolved promise with the root layout's check — see comment in
+  // `lib/supabase/cached-auth.ts` for the vercel/next.js#86060 rationale.
+  const user = await getCachedUser();
   // Belt-and-suspenders — proxy middleware also enforces this.
   if (!user) redirect("/login");
 
@@ -68,7 +69,7 @@ export default async function HomePage() {
         <KudosBanner href="/sun-kudos" />
       </main>
       <Footer />
-      <FloatingFab />
+      {/* FloatingFab is mounted globally in `app/layout.tsx` via GlobalKudosFab. */}
     </div>
   );
 }
