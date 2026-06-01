@@ -319,7 +319,19 @@ export async function searchSunners(q: string): Promise<UserProfile[]> {
   if (!q || q.trim().length === 0) return [];
   const supabase = await createClient();
 
-  const term = q.trim();
+  // Auth gate — the user directory is searchable by signed-in users only.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // PostgREST parses the `.or()` argument as a comma-separated predicate list
+  // (and percent-decodes the value before parsing it), so structural
+  // metacharacters in user input can break out of the ilike filter and inject
+  // extra predicates. Strip them before interpolation.
+  const term = q.trim().replace(/[,()*%\\]/g, "");
+  if (!term) return [];
+
   const { data, error } = await supabase
     .from("user_profiles")
     .select(

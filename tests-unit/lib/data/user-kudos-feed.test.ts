@@ -243,6 +243,10 @@ describe("getUserKudos()", () => {
 // getUserKudosYears — distinct years descending
 // ===========================================================================
 describe("getUserKudosYears()", () => {
+  // Real Supabase user IDs are UUIDs; getUserKudosYears now rejects non-UUIDs
+  // (PostgREST .or() injection guard), so tests must use a well-formed UUID.
+  const UID = "11111111-1111-4111-8111-111111111111";
+
   it("returns distinct years in descending order when user received kudos", async () => {
     const { supabase, queueResponse } = createSupabaseMock();
     queueResponse("kudos", {
@@ -256,7 +260,7 @@ describe("getUserKudosYears()", () => {
       error: null,
     });
 
-    const years = await getUserKudosYears(asClient(supabase), "user-123");
+    const years = await getUserKudosYears(asClient(supabase), UID);
 
     expect(years).toEqual([2026, 2025, 2024]);
   });
@@ -271,21 +275,21 @@ describe("getUserKudosYears()", () => {
       error: null,
     });
 
-    await getUserKudosYears(asClient(supabase), "user-456");
+    await getUserKudosYears(asClient(supabase), UID);
 
     const kudosCall = fromCalls.find((c) => c.table === "kudos");
     const orOp = kudosCall!.ops.find((o) => o.method === "or");
     // The or clause should filter for to_user OR from_user matching the userId
     expect(orOp!.args[0]).toContain("to_user");
     expect(orOp!.args[0]).toContain("from_user");
-    expect(orOp!.args[0]).toContain("user-456");
+    expect(orOp!.args[0]).toContain(UID);
   });
 
   it("returns empty array when the kudos table is missing", async () => {
     const { supabase, queueResponse } = createSupabaseMock();
     queueResponse("kudos", { data: null, error: { code: "PGRST205" } });
 
-    const years = await getUserKudosYears(asClient(supabase), "user-789");
+    const years = await getUserKudosYears(asClient(supabase), UID);
 
     expect(years).toEqual([]);
   });
@@ -298,7 +302,7 @@ describe("getUserKudosYears()", () => {
     });
 
     await expect(
-      getUserKudosYears(asClient(supabase), "user-id")
+      getUserKudosYears(asClient(supabase), UID)
     ).rejects.toMatchObject({ code: "42501" });
   });
 
@@ -315,7 +319,7 @@ describe("getUserKudosYears()", () => {
       error: null,
     });
 
-    const years = await getUserKudosYears(asClient(supabase), "user-id");
+    const years = await getUserKudosYears(asClient(supabase), UID);
 
     // Should return distinct years only
     const uniqueYears = Array.from(new Set(years));
@@ -334,7 +338,7 @@ describe("getUserKudosYears()", () => {
       error: null,
     });
 
-    const years = await getUserKudosYears(asClient(supabase), "user-id");
+    const years = await getUserKudosYears(asClient(supabase), UID);
 
     // Invalid date should be skipped (NaN year not added to Set)
     expect(years).toEqual([2026, 2025]);
@@ -344,7 +348,7 @@ describe("getUserKudosYears()", () => {
     const { supabase, queueResponse } = createSupabaseMock();
     queueResponse("kudos", { data: [], error: null });
 
-    const years = await getUserKudosYears(asClient(supabase), "user-id");
+    const years = await getUserKudosYears(asClient(supabase), UID);
 
     expect(years).toEqual([]);
   });
