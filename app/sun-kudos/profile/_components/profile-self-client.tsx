@@ -5,7 +5,7 @@
  *
  * Holds the client state the static Track-A components need wired:
  *   - stats (secret-box counts mutate after opening a box)
- *   - feed rows + cursor (received/sent tab + year filter, infinite scroll)
+ *   - feed rows + cursor (received/sent tab, infinite scroll)
  *
  * Server data arrives as DB-shape rows; we adapt to the UI card shape with the
  * SAME adapter the live board uses (DRY). Server actions resolve the user
@@ -40,21 +40,16 @@ export type ProfileSelfClientProps = {
   initialStats: Stats;
   initialRows: DbCard[];
   initialNextCursor: string | null;
-  years: number[];
-  initialYear: number;
 };
 
 export function ProfileSelfClient({
   initialStats,
   initialRows,
   initialNextCursor,
-  years,
-  initialYear,
 }: ProfileSelfClientProps) {
   const { toasts, show: showToast, dismiss: dismissToast } = useToast();
   const [stats, setStats] = useState<Stats>(initialStats);
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
-  const [year, setYear] = useState<number>(initialYear);
   const [rows, setRows] = useState<KudosCardData[]>(() => adaptKudosCards(initialRows));
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [isPending, startTransition] = useTransition();
@@ -62,12 +57,12 @@ export function ProfileSelfClient({
   const [revealedIconId, setRevealedIconId] = useState<number | null>(null);
   const [isBoxRolling, setIsBoxRolling] = useState(false);
 
-  /** Reset the feed for a given tab + year. */
+  /** Reset the feed for a given tab. */
   const reload = useCallback(
-    (tab: "received" | "sent", yr: number) => {
+    (tab: "received" | "sent") => {
       startTransition(async () => {
         try {
-          const res = await refetchUserKudos(tab, undefined, yr);
+          const res = await refetchUserKudos(tab);
           setRows(adaptKudosCards(res.rows));
           setNextCursor(res.nextCursor);
         } catch {
@@ -81,17 +76,9 @@ export function ProfileSelfClient({
   const handleTabChange = useCallback(
     (tab: "received" | "sent") => {
       setActiveTab(tab);
-      reload(tab, year);
+      reload(tab);
     },
-    [reload, year]
-  );
-
-  const handleYearChange = useCallback(
-    (yr: number) => {
-      setYear(yr);
-      reload(activeTab, yr);
-    },
-    [reload, activeTab]
+    [reload]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -100,14 +87,14 @@ export function ProfileSelfClient({
     if (!nextCursor || isPending) return;
     startTransition(async () => {
       try {
-        const res = await refetchUserKudos(activeTab, nextCursor, year);
+        const res = await refetchUserKudos(activeTab, nextCursor);
         setRows((prev) => [...prev, ...adaptKudosCards(res.rows)]);
         setNextCursor(res.nextCursor);
       } catch {
         showToast("Không thể tải thêm Kudos.", "error");
       }
     });
-  }, [nextCursor, isPending, activeTab, year, showToast]);
+  }, [nextCursor, isPending, activeTab, showToast]);
 
   /** Open the modal in closed state — no roll yet; user clicks the box image to roll. */
   const handleOpenSecretBox = useCallback(() => {
@@ -162,7 +149,7 @@ export function ProfileSelfClient({
       />
 
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        <ProfileAwardsHeader years={years} year={year} onYearChange={handleYearChange} />
+        <ProfileAwardsHeader />
         <ProfileKudosFeed
           activeTab={activeTab}
           onTabChange={handleTabChange}

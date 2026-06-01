@@ -264,25 +264,20 @@ export async function getAllKudos(
 
 /**
  * Cursor-based paginated feed scoped to ONE user — kudos they RECEIVED
- * (to_user) or SENT (from_user). Optional `year` narrows by created_at.
+ * (to_user) or SENT (from_user), across all years.
  * Same return shape as getAllKudos so KudosCard renders unchanged.
  */
 export async function getUserKudos(
   supabase: SupabaseClient,
   userId: string,
   direction: "received" | "sent",
-  opts?: { cursor?: string; limit?: number; year?: number }
+  opts?: { cursor?: string; limit?: number }
 ): Promise<{ rows: KudosCardData[]; nextCursor: string | null }> {
-  const { cursor, limit = 10, year } = opts ?? {};
+  const { cursor, limit = 10 } = opts ?? {};
   const authUserId = await getAuthUserId(supabase);
   const col = direction === "received" ? "to_user" : "from_user";
 
   let query = supabase.from("kudos").select(KUDOS_SELECT).eq(col, userId);
-  if (typeof year === "number") {
-    query = query
-      .gte("created_at", `${year}-01-01T00:00:00.000Z`)
-      .lt("created_at", `${year + 1}-01-01T00:00:00.000Z`);
-  }
   if (cursor) query = query.lt("created_at", cursor);
 
   const { data, error } = await query
@@ -309,39 +304,6 @@ export async function getUserKudos(
     rows: normalized,
     nextCursor: hasMore ? pageRows[pageRows.length - 1].created_at : null,
   };
-}
-
-/**
- * Distinct years (desc) in which the user received OR sent kudos — feeds the
- * awards year dropdown. Returns [] when the kudos table is missing.
- */
-export async function getUserKudosYears(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<number[]> {
-  // `userId` is interpolated into a PostgREST `.or()` filter string, so reject
-  // anything that is not a well-formed UUID to prevent filter injection.
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
-  ) {
-    return [];
-  }
-  const { data, error } = await supabase
-    .from("kudos")
-    .select("created_at")
-    .or(`to_user.eq.${userId},from_user.eq.${userId}`)
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) {
-    if (isMissingTable(error)) return [];
-    throw error;
-  }
-  const years = new Set<number>();
-  for (const r of (data ?? []) as Array<{ created_at: string }>) {
-    const y = new Date(r.created_at).getFullYear();
-    if (!Number.isNaN(y)) years.add(y);
-  }
-  return Array.from(years).sort((a, b) => b - a);
 }
 
 /**

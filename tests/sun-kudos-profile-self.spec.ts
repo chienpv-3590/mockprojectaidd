@@ -10,7 +10,7 @@ import { SunKudosProfileSelfPage } from "./pages/sun-kudos-profile-self-page";
  * - SELF-PROFILE-003: renders 5 stat tiles (received, sent, hearts, box opened, box unopened)
  * - SELF-PROFILE-004: renders badge collection (4 badges + locked slots)
  * - SELF-PROFILE-005: Tab toggle "Đã nhận" ↔ "Đã gửi" changes feed content
- * - SELF-PROFILE-006: Year dropdown present and functional
+ * - SELF-PROFILE-006: Year dropdown removed — no year <select> rendered
  * - SELF-PROFILE-007: "Mở Secret Box" button present; click opens modal when unopened > 0
  * - SELF-PROFILE-008: Secret Box unopened count decrements after opening
  * - SELF-PROFILE-009: Secret Box button disabled when unopened = 0
@@ -161,10 +161,10 @@ test.describe("/sun-kudos/profile — User's Own Profile", () => {
   });
 
   // ============================================================================
-  // SELF-PROFILE-006 — Year dropdown present and functional
+  // SELF-PROFILE-006 — Year dropdown removed (feed spans all years)
   // ============================================================================
 
-  test("SELF-PROFILE-006 — year dropdown present and changes feed when selected", async ({
+  test("SELF-PROFILE-006 — no year <select> dropdown is rendered", async ({
     authedContext,
     page,
   }) => {
@@ -174,19 +174,10 @@ test.describe("/sun-kudos/profile — User's Own Profile", () => {
 
     const profilePage = new SunKudosProfileSelfPage(page);
 
-    // Year dropdown should exist
-    const yearDropdown = profilePage.yearDropdown();
-    try {
-      await expect(yearDropdown).toBeVisible({ timeout: 5000 });
-      // If dropdown exists, try to interact with it
-      await yearDropdown.click();
-      await page.waitForLoadState("networkidle");
-    } catch {
-      // Year dropdown may not exist if no multi-year kudos in seed
-      // Just verify the page is functional
-      const banner = profilePage.profileBanner();
-      await expect(banner).toBeVisible();
-    }
+    // The awards header no longer renders a year filter — assert it is gone
+    // while the page itself still renders normally.
+    await expect(profilePage.yearSelect()).toHaveCount(0);
+    await expect(profilePage.profileBanner()).toBeVisible();
   });
 
   // ============================================================================

@@ -95,29 +95,11 @@ export class SunKudosProfilePage {
   }
 
   /**
-   * Check if year dropdown/combobox control exists (contains 4-digit year).
+   * Count year <select> controls in the awards header. The year dropdown was
+   * removed (feed now spans all years), so this should always be 0.
    */
-  async hasYearControl(): Promise<boolean> {
-    const control = this.page.locator('select, [role="combobox"], button').filter({ hasText: /\d{4}/ });
-    return (await control.count()) > 0;
-  }
-
-  /**
-   * Get the year control locator (for interaction).
-   */
-  getYearControl() {
-    return this.page.locator('select, [role="combobox"], button').filter({ hasText: /\d{4}/ }).first();
-  }
-
-  /**
-   * Click year control and wait for network idle (feed reload).
-   */
-  async selectYear() {
-    const control = this.getYearControl();
-    if (await control.isVisible()) {
-      await control.click();
-      await this.page.waitForLoadState("networkidle");
-    }
+  async yearControlCount(): Promise<number> {
+    return this.page.locator("select").count();
   }
 
   /**
@@ -230,11 +212,10 @@ export class SunKudosProfilePage {
   }
 
   /**
-   * Assert that year control exists.
+   * Assert that NO year <select> control is present (year dropdown removed).
    */
-  async assertYearControlPresent() {
-    const has = await this.hasYearControl();
-    expect(has).toBe(true);
+  async assertNoYearControl() {
+    expect(await this.yearControlCount()).toBe(0);
   }
 
   /**

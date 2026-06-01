@@ -497,28 +497,25 @@ describe("refetchUserKudos()", () => {
 
   it("uses targetUserId when it is a valid uuid", async () => {
     const mock = setupMock(AUTHED_USER);
-    await refetchUserKudos("received", undefined, 2025, VALID_UUID);
+    await refetchUserKudos("received", undefined, VALID_UUID);
     expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, VALID_UUID, "received", {
       cursor: undefined,
-      year: 2025,
     });
   });
 
   it("falls back to the logged-in user.id when targetUserId is undefined", async () => {
     const mock = setupMock(AUTHED_USER);
-    await refetchUserKudos("sent", "cursor-1", 2024);
+    await refetchUserKudos("sent", "cursor-1");
     expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, AUTHED_USER.id, "sent", {
       cursor: "cursor-1",
-      year: 2024,
     });
   });
 
   it("falls back to user.id when targetUserId is not a valid uuid", async () => {
     const mock = setupMock(AUTHED_USER);
-    await refetchUserKudos("received", undefined, undefined, "not-a-uuid");
+    await refetchUserKudos("received", undefined, "not-a-uuid");
     expect(getUserKudos).toHaveBeenCalledWith(mock.supabase, AUTHED_USER.id, "received", {
       cursor: undefined,
-      year: undefined,
     });
   });
 });

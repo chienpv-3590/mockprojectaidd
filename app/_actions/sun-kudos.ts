@@ -283,8 +283,8 @@ export async function refetchFeed(
 }
 
 /**
- * Fetch a page of kudos — received or sent — optionally narrowed by year and
- * cursor-paginated. Powers the profile feed tabs.
+ * Fetch a page of kudos — received or sent — cursor-paginated across all years.
+ * Powers the profile feed tabs.
  *
  * Authentication is always required. When `targetUserId` is a valid UUID it
  * selects that user's feed (public data, same as the live board). Any other
@@ -294,7 +294,6 @@ export async function refetchFeed(
 export async function refetchUserKudos(
   direction: "received" | "sent",
   cursor?: string,
-  year?: number,
   targetUserId?: string
 ): Promise<{ rows: KudosCardData[]; nextCursor: string | null }> {
   const supabase = await createClient();
@@ -308,7 +307,7 @@ export async function refetchUserKudos(
   const userId =
     targetUserId && isUuid(targetUserId) ? targetUserId : user.id;
 
-  return getUserKudos(supabase, userId, direction, { cursor, year });
+  return getUserKudos(supabase, userId, direction, { cursor });
 }
 
 /**

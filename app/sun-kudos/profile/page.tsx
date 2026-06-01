@@ -8,7 +8,7 @@
  *   4. Footer
  *
  * Data is fetched server-side for the logged-in user only; the interactive
- * pieces (feed tabs, year filter, secret box) live in ProfileSelfClient.
+ * pieces (feed tabs, secret box) live in ProfileSelfClient.
  */
 
 import { redirect } from "next/navigation";
@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
 import { getProfile, getProfileStats, getUserHeroRank } from "@/lib/data/profile";
 import { getSecretBoxCounts, getOwnedIcons } from "@/lib/data/secret-boxes";
-import { getUserKudos, getUserKudosYears } from "@/lib/data/kudos-feed";
+import { getUserKudos } from "@/lib/data/kudos-feed";
 import { Header } from "@/app/_components/home/header";
 import { Footer } from "@/app/_components/home/footer";
 import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
@@ -35,10 +35,6 @@ export default async function SelfProfilePage() {
   const user = await getCachedUser();
   if (!user) redirect("/login?next=/sun-kudos/profile");
 
-  // Years drive the awards dropdown; the newest year seeds the initial feed.
-  const years = await getUserKudosYears(supabase, user.id);
-  const initialYear = years[0] ?? new Date().getFullYear();
-
   const [notifications, unreadCount, profile, profileStats, secretBoxCounts, heroRank, ownedIcons, feedResult] =
     await Promise.all([
       getNotifications(supabase, user.id, 10),
@@ -48,7 +44,7 @@ export default async function SelfProfilePage() {
       getSecretBoxCounts(supabase, user.id),
       getUserHeroRank(supabase, user.id),
       getOwnedIcons(supabase, user.id),
-      getUserKudos(supabase, user.id, "received", { year: initialYear }),
+      getUserKudos(supabase, user.id, "received"),
     ]);
 
   const displayName =
@@ -115,8 +111,6 @@ export default async function SelfProfilePage() {
             }}
             initialRows={feedResult.rows}
             initialNextCursor={feedResult.nextCursor}
-            years={years.length > 0 ? years : [initialYear]}
-            initialYear={initialYear}
           />
         </div>
       </main>

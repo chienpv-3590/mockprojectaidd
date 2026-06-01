@@ -8,7 +8,7 @@
  * Design: node 362:5091 — gap 24px column feed.
  * Tab toggle bar is NOT in the design but required by clarifications.md:
  *   "Feed KUDOS — cả nhận và gửi, có tab/toggle chuyển đổi"
- * (Year filtering lives in ProfileAwardsHeader; this feed only owns the tabs.)
+ * (This feed owns only the tabs; the list shows kudos across all years.)
  */
 
 import { useEffect, useRef } from "react";

@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNotifications, getUnreadCount } from "@/lib/data/notifications";
 import { getProfile, getProfileStats, getUserHeroRank } from "@/lib/data/profile";
 import { getOwnedIcons } from "@/lib/data/secret-boxes";
-import { getUserKudos, getUserKudosYears } from "@/lib/data/kudos-feed";
+import { getUserKudos } from "@/lib/data/kudos-feed";
 import { Header } from "@/app/_components/home/header";
 import { Footer } from "@/app/_components/home/footer";
 import { LanguageSwitcher } from "@/app/_components/home/language-switcher";
@@ -52,9 +52,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
 
   if (!user) redirect(`/login?next=/sun-kudos/profile/${userId}`);
 
-  const years = await getUserKudosYears(supabase, userId);
-  const initialYear = years[0] ?? new Date().getFullYear();
-
   const [notifications, unreadCount, profile, profileStats, heroRank, ownedIcons, feedResult] =
     await Promise.all([
       getNotifications(supabase, user.id, 10),
@@ -63,7 +60,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
       getProfileStats(supabase, userId),
       getUserHeroRank(supabase, userId),
       getOwnedIcons(supabase, userId),
-      getUserKudos(supabase, userId, "received", { year: initialYear }),
+      getUserKudos(supabase, userId, "received"),
     ]);
 
   if (!profile) notFound();
@@ -172,8 +169,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
             }}
             initialRows={feedResult.rows}
             initialNextCursor={feedResult.nextCursor}
-            years={years.length > 0 ? years : [initialYear]}
-            initialYear={initialYear}
           />
         </div>
       </main>

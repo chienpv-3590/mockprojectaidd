@@ -4,8 +4,8 @@
  * ProfilePublicClient — interactive shell for ANOTHER user's profile (read-only).
  *
  * Fixed direction = "received" (no tab toggle).
- * State: year + paginated feed rows.
- * Calls refetchUserKudos("received", cursor?, year?, targetUserId) (Phase B1 arg).
+ * State: paginated feed rows (all years).
+ * Calls refetchUserKudos("received", cursor?, targetUserId) (Phase B1 arg).
  */
 
 import { useCallback, useState, useTransition } from "react";
@@ -26,8 +26,6 @@ export type ProfilePublicClientProps = {
   };
   initialRows: DbCard[];
   initialNextCursor: string | null;
-  years: number[];
-  initialYear: number;
 };
 
 export function ProfilePublicClient({
@@ -35,50 +33,23 @@ export function ProfilePublicClient({
   initialStats,
   initialRows,
   initialNextCursor,
-  years,
-  initialYear,
 }: ProfilePublicClientProps) {
-  const [year, setYear] = useState<number>(initialYear);
   const [rows, setRows] = useState<KudosCardData[]>(() => adaptKudosCards(initialRows));
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [isPending, startTransition] = useTransition();
-
-  /** Reload received kudos for the target user when year changes. */
-  const reload = useCallback(
-    (yr: number) => {
-      startTransition(async () => {
-        try {
-          const res = await refetchUserKudos("received", undefined, yr, targetUserId);
-          setRows(adaptKudosCards(res.rows));
-          setNextCursor(res.nextCursor);
-        } catch {
-          // Silent: feed stays at previous state; no toast on public profile
-        }
-      });
-    },
-    [targetUserId]
-  );
-
-  const handleYearChange = useCallback(
-    (yr: number) => {
-      setYear(yr);
-      reload(yr);
-    },
-    [reload]
-  );
 
   const handleLoadMore = useCallback(() => {
     if (!nextCursor || isPending) return;
     startTransition(async () => {
       try {
-        const res = await refetchUserKudos("received", nextCursor, year, targetUserId);
+        const res = await refetchUserKudos("received", nextCursor, targetUserId);
         setRows((prev) => [...prev, ...adaptKudosCards(res.rows)]);
         setNextCursor(res.nextCursor);
       } catch {
         // Silent: keep existing rows
       }
     });
-  }, [nextCursor, isPending, year, targetUserId]);
+  }, [nextCursor, isPending, targetUserId]);
 
   return (
     <>
@@ -91,7 +62,7 @@ export function ProfilePublicClient({
 
       {/* Section C + D — Awards header + received feed */}
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        <ProfileAwardsHeader years={years} year={year} onYearChange={handleYearChange} />
+        <ProfileAwardsHeader />
         <ProfileKudosFeed
           showTabs={false}
           activeTab="received"
