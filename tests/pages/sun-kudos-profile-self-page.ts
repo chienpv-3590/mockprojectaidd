@@ -2,7 +2,7 @@ import { Page, Locator } from "@playwright/test";
 
 /**
  * Page object for /sun-kudos/profile — User's Own Profile Page.
- * Encapsulates locators for profile banner, stats, badges, feed tabs, year dropdown, secret box.
+ * Encapsulates locators for profile banner, stats, badges, feed tabs, secret box.
  */
 export class SunKudosProfileSelfPage {
   constructor(private page: Page) {}
@@ -97,15 +97,10 @@ export class SunKudosProfileSelfPage {
     return this.kudosFeed().locator("article").nth(index);
   }
 
-  // Year dropdown / awards header
-  yearDropdown(): Locator {
-    // The awards header renders a select or combobox for year filter
-    return this.page.locator('select, [role="combobox"], button').filter({ hasText: /\d{4}/ }).first();
-  }
-
-  yearOption(year: number | string): Locator {
-    // Year option inside dropdown
-    return this.page.locator(`option:has-text("${year}"), [role="option"]:has-text("${year}")`);
+  // Awards header — year dropdown removed; feed now spans all years.
+  // Used to assert the year <select> is no longer rendered.
+  yearSelect(): Locator {
+    return this.page.locator("select");
   }
 
   // Secret Box button — "Mở Secret Box"

@@ -9,7 +9,7 @@ import { test, expect } from "./fixtures/auth";
  *  - Back link "← Quay lại Sun Kudos"
  *  - Gold CTA "Gửi Kudos cho người này" → ?compose=<userId>
  *  - ProfileStatsPanel: 3 rows (NO "Mở Secret Box" button, NO box counters)
- *  - ProfileAwardsHeader: year <select> dropdown
+ *  - ProfileAwardsHeader: KUDOS title only (year <select> dropdown removed)
  *  - ProfileKudosFeed: NO received/sent tabs (showTabs=false) → static "Đã nhận" label
  *
  * Test cases:
@@ -17,7 +17,7 @@ import { test, expect } from "./fixtures/auth";
  * - PROFILE-002: banner shows h1 with user name (non-empty)
  * - PROFILE-003: exactly 3 stat rows; NO "Mở Secret Box" button; NO "Số Secret Box chưa mở" row
  * - PROFILE-004: NO received/sent tab toggle; static "Đã nhận" feed label present
- * - PROFILE-005: year <select> dropdown present; selecting a year reloads feed
+ * - PROFILE-005: year <select> dropdown removed — no <select> rendered
  * - PROFILE-006: page <title> matches /\| Sun\* Kudos/ and name part is non-empty
  * - PROFILE-007: from /sun-kudos, click a profile link → URL settles on /sun-kudos/profile/<uuid>
  * - PROFILE-008: "Gửi Kudos cho người này" CTA present → click → ?compose=<uuid> in URL + dialog open
@@ -158,10 +158,10 @@ test.describe("/sun-kudos/profile/[userId] — Other-User Profile (Read-Only)", 
   });
 
   // ============================================================================
-  // PROFILE-005 — year <select> dropdown functional
+  // PROFILE-005 — year <select> dropdown removed
   // ============================================================================
 
-  test("PROFILE-005 — year <select> dropdown present and functional", async ({ page }) => {
+  test("PROFILE-005 — no year <select> dropdown is rendered", async ({ page }) => {
     const profileLink = await findFirstProfileLink(page);
     if (!profileLink) {
       test.skip(true, "No kudos cards with profile links found in feed — seed data required");
@@ -171,26 +171,11 @@ test.describe("/sun-kudos/profile/[userId] — Other-User Profile (Read-Only)", 
     await page.goto(profileLink.url);
     await page.waitForLoadState("domcontentloaded");
 
-    // The awards header always renders a year <select> (page passes ≥1 year),
-    // so the dropdown must be present — assert unconditionally.
-    const yearSelect = page.locator("select").first();
-    await expect(yearSelect).toBeVisible();
-
-    const optionValues = await yearSelect
-      .locator("option")
-      .evaluateAll((opts) => opts.map((o) => (o as HTMLOptionElement).value));
-    expect(optionValues.length).toBeGreaterThan(0);
-
-    // When more than one year exists, actually change the selection (a real
-    // value change, not a no-op .click()) and assert it applied + no crash.
-    if (optionValues.length > 1) {
-      const current = await yearSelect.inputValue();
-      const next = optionValues.find((v) => v !== current) ?? optionValues[1];
-      await yearSelect.selectOption(next);
-      await expect(yearSelect).toHaveValue(next);
-      // Feed reload triggered by year change must not break the page.
-      await expect(page.locator("h1").first()).toBeVisible();
-    }
+    // The awards header no longer renders a year filter — the feed now spans
+    // all years, so no <select> should exist on the page.
+    await expect(page.locator("select")).toHaveCount(0);
+    // Page still renders normally.
+    await expect(page.locator("h1").first()).toBeVisible();
   });
 
   // ============================================================================
