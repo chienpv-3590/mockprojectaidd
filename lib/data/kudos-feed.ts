@@ -319,6 +319,13 @@ export async function getUserKudosYears(
   supabase: SupabaseClient,
   userId: string
 ): Promise<number[]> {
+  // `userId` is interpolated into a PostgREST `.or()` filter string, so reject
+  // anything that is not a well-formed UUID to prevent filter injection.
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+  ) {
+    return [];
+  }
   const { data, error } = await supabase
     .from("kudos")
     .select("created_at")

@@ -240,7 +240,27 @@ begin
   values (uid, 'Bạn (Demo)', 'CEVC1', 'DM000', 'Software Engineer')
   on conflict (user_id) do nothing;
 
-  -- Insert 8 demo profiles (no auth.users rows — use fixed UUIDs for demo display only)
+  -- The 8 demo identities are referenced by FK from user_profiles.user_id,
+  -- kudos.from_user/to_user and kudos_hearts.user_id — all → auth.users(id).
+  -- Without backing auth.users rows every insert below raises
+  -- foreign_key_violation and the whole block rolls back. This SECURITY DEFINER
+  -- function runs as the schema owner, so it may insert the minimal auth.users
+  -- rows needed (display-only; these accounts never authenticate).
+  insert into auth.users (
+    id, instance_id, aud, role, email,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+  ) values
+    (demo1, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo1@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo2, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo2@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo3, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo3@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo4, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo4@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo5, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo5@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo6, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo6@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo7, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo7@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now()),
+    (demo8, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'demo8@saa.local', '{"provider":"seed","providers":["seed"]}'::jsonb, '{}'::jsonb, now(), now())
+  on conflict (id) do nothing;
+
+  -- Insert 8 demo profiles (fixed UUIDs, backed by the auth.users rows above)
   insert into public.user_profiles (user_id, full_name_vi, department_code, employee_code, title) values
     (demo1, 'Nguyễn Văn An',    'CEVC1', 'DM001', 'Backend Engineer'),
     (demo2, 'Trần Thị Bình',    'CEVC2', 'DM002', 'QA Engineer'),
