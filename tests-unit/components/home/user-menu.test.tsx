@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@/tests-unit/_helpers/render-with-i18n";
 import userEvent from "@testing-library/user-event";
 import { UserMenu } from "@/app/_components/home/user-menu";
+import viDict from "@/lib/i18n/dictionaries/vi.json";
 
 // sign-out is a "use server" action — stub it so it never touches Supabase/redirect.
 vi.mock("@/app/_actions/sign-out", () => ({
@@ -22,14 +23,14 @@ describe("<UserMenu />", () => {
   it("renders the account menu button", () => {
     render(<UserMenu user={baseUser} />);
     expect(
-      screen.getByRole("button", { name: "Account menu" })
+      screen.getByRole("button", { name: viDict.userMenu.accountMenu })
     ).toBeInTheDocument();
   });
 
   it("shows the initial letter of the user's name when no avatarUrl", () => {
     render(<UserMenu user={baseUser} />);
     // Initial "N" appears inside the trigger button
-    const btn = screen.getByRole("button", { name: "Account menu" });
+    const btn = screen.getByRole("button", { name: viDict.userMenu.accountMenu });
     expect(btn.textContent).toBe("N");
   });
 
@@ -50,20 +51,20 @@ describe("<UserMenu />", () => {
 
   it("opens the dropdown when the avatar button is clicked", async () => {
     render(<UserMenu user={baseUser} />);
-    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    await userEvent.click(screen.getByRole("button", { name: viDict.userMenu.accountMenu }));
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
   it("shows the user name in the dropdown header", async () => {
     render(<UserMenu user={baseUser} />);
-    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    await userEvent.click(screen.getByRole("button", { name: viDict.userMenu.accountMenu }));
     // name appears both in the trigger (initial) and in the dropdown
     expect(screen.getByText("Nguyen Van A")).toBeInTheDocument();
   });
 
   it("shows the user email in the dropdown header", async () => {
     render(<UserMenu user={baseUser} />);
-    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    await userEvent.click(screen.getByRole("button", { name: viDict.userMenu.accountMenu }));
     expect(
       screen.getByText("nguyen@sun-asterisk.com")
     ).toBeInTheDocument();
@@ -71,15 +72,15 @@ describe("<UserMenu />", () => {
 
   it("renders the sign-out menu item", async () => {
     render(<UserMenu user={baseUser} />);
-    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    await userEvent.click(screen.getByRole("button", { name: viDict.userMenu.accountMenu }));
     expect(
-      screen.getByRole("menuitem", { name: "Đăng xuất" })
+      screen.getByRole("menuitem", { name: viDict.userMenu.signOut })
     ).toBeInTheDocument();
   });
 
   it("closes the dropdown on Escape key", async () => {
     render(<UserMenu user={baseUser} />);
-    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    await userEvent.click(screen.getByRole("button", { name: viDict.userMenu.accountMenu }));
     expect(screen.getByRole("menu")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -87,7 +88,7 @@ describe("<UserMenu />", () => {
 
   it("toggles the dropdown closed on second click", async () => {
     render(<UserMenu user={baseUser} />);
-    const btn = screen.getByRole("button", { name: "Account menu" });
+    const btn = screen.getByRole("button", { name: viDict.userMenu.accountMenu });
     await userEvent.click(btn);
     expect(screen.getByRole("menu")).toBeInTheDocument();
     await userEvent.click(btn);

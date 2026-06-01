@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@/tests-unit/_helpers/render-with-i18n";
 import userEvent from "@testing-library/user-event";
 import {
   DialogHeader,
@@ -9,7 +9,7 @@ import {
 describe("<DialogHeader />", () => {
   it("renders the dialog title", () => {
     render(<DialogHeader onClose={() => {}} />);
-    expect(screen.getByText("Gửi lời cảm ơn")).toBeInTheDocument();
+    expect(screen.getByText("Gửi lời cám ơn và ghi nhận đến đồng đội")).toBeInTheDocument();
   });
 
   it("title has correct heading level id for aria-labelledby", () => {

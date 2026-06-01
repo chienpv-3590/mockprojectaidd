@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@/tests-unit/_helpers/render-with-i18n";
 import { Header } from "@/app/_components/home/header";
 
 vi.mock("next/navigation", () => ({

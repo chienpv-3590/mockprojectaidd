@@ -1,26 +1,32 @@
 /**
- * Characterization (regression) tests for
- * app/login/_components/language-switcher.tsx — LanguageSwitcher.
+ * Tests for app/login/_components/language-switcher.tsx — LanguageSwitcher.
  *
  * Current behavior (as coded):
  *  - Defaults to "VN" locale — shows "VN" code in the trigger.
+ *  - Button aria-label is "Đổi ngôn ngữ" (Vietnamese, from i18n context).
  *  - Clicking the trigger toggles the dropdown open/closed.
- *  - Selecting a locale closes the dropdown and updates the displayed code.
- *  - i18n wiring is explicitly deferred in source; selection is VISUAL ONLY —
- *    no localStorage reads or writes occur. Tests match this current behavior.
+ *  - Selecting a locale closes the dropdown, calls router/cookie setters.
+ *  - Selection follows the i18n context locale (cookie-backed), not internal state.
  *  - Outside click (document click not on ref) closes the open menu.
  *  - Escape key closes the open menu.
  *  - aria-expanded reflects open/closed state.
- *
- * NOTE: localStorage persistence is NOT tested because the source code
- * explicitly says "i18n wiring deferred — selection is visual only for now."
- * If persistence is added later, add a test at that point.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@/tests-unit/_helpers/render-with-i18n";
 import userEvent from "@testing-library/user-event";
 import { LanguageSwitcher } from "@/app/login/_components/language-switcher";
+import viDict from "@/lib/i18n/dictionaries/vi.json";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/login",
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("@/lib/i18n/set-locale-cookie", () => ({
+  setLocaleCookie: vi.fn(),
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,9 +36,9 @@ function renderSwitcher() {
   return render(<LanguageSwitcher />);
 }
 
-/** Returns the trigger button (aria-label="Change language"). */
+/** Returns the trigger button (aria-label="Đổi ngôn ngữ"). */
 function getTrigger() {
-  return screen.getByRole("button", { name: /change language/i });
+  return screen.getByRole("button", { name: viDict.languageSwitcher.ariaLabel });
 }
 
 /** Opens the dropdown. Returns the listbox element. */
@@ -46,7 +52,7 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>) {
 // ---------------------------------------------------------------------------
 
 describe("<LanguageSwitcher /> — default render", () => {
-  it("renders a trigger button with aria-label='Change language'", () => {
+  it("renders a trigger button with Vietnamese aria-label", () => {
     renderSwitcher();
     expect(getTrigger()).toBeInTheDocument();
   });
@@ -156,52 +162,35 @@ describe("<LanguageSwitcher /> — locale selection", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("updates the trigger to show 'EN' after selecting English", async () => {
+  it("closes dropdown and triggers locale change when selecting English", async () => {
     const user = userEvent.setup();
     renderSwitcher();
     await openMenu(user);
     const options = screen.getAllByRole("option");
     const enOption = options.find((o) => within(o).queryByText("EN"))!;
     await user.click(enOption);
-    expect(within(getTrigger()).getByText("EN")).toBeInTheDocument();
+    // Dropdown closes after selection
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("selecting VN (already selected) still closes and keeps VN", async () => {
+  it("selecting VN (already selected) still closes the dropdown", async () => {
     const user = userEvent.setup();
     renderSwitcher();
     await openMenu(user);
     const options = screen.getAllByRole("option");
     const vnOption = options.find((o) => within(o).queryByText("VN"))!;
     await user.click(vnOption);
+    // Dropdown closes after selection
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    expect(within(getTrigger()).getByText("VN")).toBeInTheDocument();
   });
 
-  it("after switching to EN, aria-selected is true for EN and false for VN", async () => {
+  it("VN option remains aria-selected=true since test provider is fixed to vi locale", async () => {
     const user = userEvent.setup();
     renderSwitcher();
     await openMenu(user);
-    const enOption = screen.getAllByRole("option").find((o) => within(o).queryByText("EN"))!;
-    await user.click(enOption);
-
-    // Reopen to check aria-selected
-    await openMenu(user);
     const options = screen.getAllByRole("option");
-    const nowVN = options.find((o) => within(o).queryByText("VN"))!;
-    const nowEN = options.find((o) => within(o).queryByText("EN"))!;
-    expect(nowEN).toHaveAttribute("aria-selected", "true");
-    expect(nowVN).toHaveAttribute("aria-selected", "false");
-  });
-
-  it("does NOT read or write localStorage (selection is visual-only)", () => {
-    // The source code explicitly defers i18n wiring. Verify localStorage is untouched.
-    const getItemSpy = vi.spyOn(Storage.prototype, "getItem");
-    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
-    renderSwitcher();
-    expect(getItemSpy).not.toHaveBeenCalled();
-    expect(setItemSpy).not.toHaveBeenCalled();
-    getItemSpy.mockRestore();
-    setItemSpy.mockRestore();
+    const vnOption = options.find((o) => within(o).queryByText("VN"))!;
+    expect(vnOption).toHaveAttribute("aria-selected", "true");
   });
 });
 

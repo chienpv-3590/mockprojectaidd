@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@/tests-unit/_helpers/render-with-i18n";
 import userEvent from "@testing-library/user-event";
 import { SubmitKudosDialog } from "@/app/_components/sun-kudos/submit-kudos-dialog";
 import type { Department, Hashtag, UserProfile } from "@/lib/data/types";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/sun-kudos",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 /* ------------------------------------------------------------------ */
 /* Fixtures                                                             */
@@ -83,7 +89,7 @@ describe("<SubmitKudosDialog /> — visibility", () => {
     render(<SubmitKudosDialog {...makeProps()} />);
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("aria-labelledby", "dialog-title");
-    expect(document.getElementById("dialog-title")).toHaveTextContent("Gửi lời cảm ơn");
+    expect(document.getElementById("dialog-title")).toHaveTextContent("Gửi lời cám ơn và ghi nhận đến đồng đội");
   });
 });
 
@@ -114,13 +120,15 @@ describe("<SubmitKudosDialog /> — reset behavior", () => {
     const props = makeProps();
     const { rerender } = render(<SubmitKudosDialog {...props} />);
 
-    await user.type(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), "Some message");
-    expect(screen.getByRole("textbox", { name: /Lời cảm ơn/i })).toHaveValue("Some message");
+    const msgBox = screen.getByRole("textbox", { name: /Nội dung/i });
+    await user.type(msgBox, "Some message");
+    expect(msgBox.textContent).toBe("Some message");
 
     rerender(<SubmitKudosDialog {...props} open={false} />);
     rerender(<SubmitKudosDialog {...props} open={true} />);
 
-    expect(screen.getByRole("textbox", { name: /Lời cảm ơn/i })).toHaveValue("");
+    const newMsgBox = screen.getByRole("textbox", { name: /Nội dung/i });
+    expect(newMsgBox.textContent).toBe("");
   });
 });
 
@@ -171,7 +179,7 @@ describe("<SubmitKudosDialog /> — canSubmit guard", () => {
     expect(screen.getByRole("button", { name: "Gửi" })).toBeDisabled();
   });
 
-  it("send button remains disabled when only recipient + featureHashtag filled (no message)", async () => {
+  it("send button remains disabled when only recipient + hashtag filled (no message)", async () => {
     const user = userEvent.setup();
     const sunnerSearch = vi.fn().mockResolvedValue([buildUser()]);
     render(<SubmitKudosDialog {...makeProps({ sunnerSearch })} />);
@@ -180,13 +188,16 @@ describe("<SubmitKudosDialog /> — canSubmit guard", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
+    // Click the first small hashtag chip
+    await user.click(screen.getByText("#Tag 1"));
 
     // Message is still empty
     expect(screen.getByRole("button", { name: "Gửi" })).toBeDisabled();
   });
 
-  it("send button becomes enabled when recipient + featureHashtag + message all filled", async () => {
+  it("send button becomes enabled when recipient + title + hashtag + message all filled", async () => {
     const user = userEvent.setup();
     const sunnerSearch = vi.fn().mockResolvedValue([buildUser()]);
     render(<SubmitKudosDialog {...makeProps({ sunnerSearch })} />);
@@ -195,8 +206,12 @@ describe("<SubmitKudosDialog /> — canSubmit guard", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
-    await user.type(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), "Thanks!");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
+    // Click the first small hashtag chip
+    await user.click(screen.getByText("#Tag 1"));
+
+    await user.type(screen.getByRole("textbox", { name: /Nội dung/i }), "Thanks!");
 
     expect(screen.getByRole("button", { name: "Gửi" })).not.toBeDisabled();
   });
@@ -215,7 +230,7 @@ describe("<SubmitKudosDialog /> — validation", () => {
     );
   });
 
-  it("shows 'Vui lòng chọn hạng mục.' when featureHashtag is empty on submit", async () => {
+  it("shows 'Vui lòng chọn ít nhất 1 hashtag.' when no hashtag is selected on submit", async () => {
     const user = userEvent.setup();
     const sunnerSearch = vi.fn().mockResolvedValue([buildUser()]);
     render(<SubmitKudosDialog {...makeProps({ sunnerSearch })} />);
@@ -224,9 +239,11 @@ describe("<SubmitKudosDialog /> — validation", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
     submitForm();
     await waitFor(() =>
-      expect(screen.getByText("Vui lòng chọn hạng mục.")).toBeInTheDocument()
+      expect(screen.getByText("Vui lòng chọn ít nhất 1 hashtag.")).toBeInTheDocument()
     );
   });
 
@@ -239,7 +256,10 @@ describe("<SubmitKudosDialog /> — validation", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
+    // Click the first small hashtag chip (s1 = "Tag 1")
+    await user.click(screen.getByText("#Tag 1"));
 
     submitForm();
     await waitFor(() =>
@@ -249,7 +269,7 @@ describe("<SubmitKudosDialog /> — validation", () => {
     );
   });
 
-  it("shows message-too-long error when message exceeds 2000 chars", async () => {
+  it("shows message-too-long error when message exceeds 1000 chars", async () => {
     const user = userEvent.setup();
     const sunnerSearch = vi.fn().mockResolvedValue([buildUser()]);
     render(<SubmitKudosDialog {...makeProps({ sunnerSearch })} />);
@@ -258,16 +278,19 @@ describe("<SubmitKudosDialog /> — validation", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
 
-    // Bypass the textarea's maxLength via fireEvent.change
-    fireEvent.change(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), {
-      target: { value: "a".repeat(2001) },
-    });
+    // Click the first small hashtag chip (s1 = "Tag 1")
+    await user.click(screen.getByText("#Tag 1"));
+
+    // Type a message longer than 1000 chars by manipulating the contenteditable directly
+    const msgBox = screen.getByRole("textbox", { name: /Nội dung/i });
+    msgBox.textContent = "a".repeat(1001);
+    fireEvent.input(msgBox);
 
     submitForm();
     await waitFor(() =>
-      expect(screen.getByText("Lời cảm ơn tối đa 2000 ký tự.")).toBeInTheDocument()
+      expect(screen.getByText(/Lời cảm ơn tối đa/i)).toBeInTheDocument()
     );
   });
 
@@ -301,10 +324,13 @@ describe("<SubmitKudosDialog /> — successful submit", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
+    // Click the first small hashtag chip (s1 = "Tag 1")
+    await user.click(screen.getByText("#Tag 1"));
 
     await user.type(
-      screen.getByRole("textbox", { name: /Lời cảm ơn/i }),
+      screen.getByRole("textbox", { name: /Nội dung/i }),
       "Great work!"
     );
 
@@ -316,13 +342,18 @@ describe("<SubmitKudosDialog /> — successful submit", () => {
   it("calls onSubmit with the correct payload shape", async () => {
     const { onSubmit } = await setupAndSubmit();
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-    expect(onSubmit).toHaveBeenCalledWith({
-      to_user: "u1",
-      message: "Great work!",
-      feature_hashtag_id: "f1",
-      small_hashtag_ids: [],
-      image_paths: [],
-    });
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to_user: "u1",
+        title: "Great title",
+        message: "Great work!",
+        small_hashtag_ids: ["s1"],
+        image_paths: [],
+        is_anonymous: false,
+        anonymous_nickname: null,
+        mention_user_ids: [],
+      })
+    );
   });
 
   it("calls onClose after successful submit", async () => {
@@ -341,12 +372,14 @@ describe("<SubmitKudosDialog /> — successful submit", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
-    await user.click(screen.getByRole("button", { name: "#Tag 1" }));
-    await user.click(screen.getByRole("button", { name: "#Tag 2" }));
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+
+    // Click both small hashtag chips
+    await user.click(screen.getByText("#Tag 1"));
+    await user.click(screen.getByText("#Tag 2"));
 
     await user.type(
-      screen.getByRole("textbox", { name: /Lời cảm ơn/i }),
+      screen.getByRole("textbox", { name: /Nội dung/i }),
       "Team rocks!"
     );
 
@@ -369,8 +402,9 @@ describe("<SubmitKudosDialog /> — successful submit", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
-    await user.type(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), "Hello!");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+    await user.click(screen.getByText("#Tag 1"));
+    await user.type(screen.getByRole("textbox", { name: /Nội dung/i }), "Hello!");
 
     await user.click(screen.getByRole("button", { name: "Gửi" }));
 
@@ -390,8 +424,9 @@ describe("<SubmitKudosDialog /> — successful submit", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
-    await user.type(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), "Hello!");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+    await user.click(screen.getByText("#Tag 1"));
+    await user.type(screen.getByRole("textbox", { name: /Nội dung/i }), "Hello!");
 
     await user.click(screen.getByRole("button", { name: "Gửi" }));
 
@@ -469,8 +504,9 @@ describe("<SubmitKudosDialog /> — image upload", () => {
     await waitFor(() => expect(screen.getByText("Alice Nguyen")).toBeInTheDocument());
     await user.click(screen.getByText("Alice Nguyen"));
 
-    await user.selectOptions(screen.getByRole("combobox"), "f1");
-    await user.type(screen.getByRole("textbox", { name: /Lời cảm ơn/i }), "With image!");
+    await user.type(screen.getByRole("textbox", { name: /Danh hiệu/i }), "Great title");
+    await user.click(screen.getByText("#Tag 1"));
+    await user.type(screen.getByRole("textbox", { name: /Nội dung/i }), "With image!");
 
     await user.click(screen.getByRole("button", { name: "Gửi" }));
 
