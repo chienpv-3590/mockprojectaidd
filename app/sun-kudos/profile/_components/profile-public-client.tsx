@@ -60,15 +60,32 @@ export function ProfilePublicClient({
         hearts={initialStats.hearts}
       />
 
-      {/* Section C + D — Awards header + received feed */}
+      {/* Section C + D — Awards header + received-only feed.
+          Public profiles have no received/sent switch (read-only), so the
+          header shows a static "Đã nhận (N)" label in the C.3 slot instead of
+          the interactive dropdown. */}
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        <ProfileAwardsHeader />
+        <ProfileAwardsHeader
+          rightSlot={
+            <p
+              aria-label="Kudos đã nhận"
+              style={{
+                fontFamily: "var(--font-montserrat), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: "16px",
+                lineHeight: "24px",
+                letterSpacing: "0.15px",
+                color: "#FFFFFF",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                margin: 0,
+              }}
+            >
+              Đã nhận: {initialStats.received} Kudos
+            </p>
+          }
+        />
         <ProfileKudosFeed
-          showTabs={false}
-          activeTab="received"
-          onTabChange={() => {
-            /* no-op: public profile is received-only */
-          }}
           rows={rows}
           onLoadMore={handleLoadMore}
           hasMore={!!nextCursor}

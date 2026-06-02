@@ -149,12 +149,12 @@ test.describe("/sun-kudos/profile/[userId] — Other-User Profile (Read-Only)", 
     const tabButtons = page.locator('[role="tab"]');
     await expect(tabButtons).toHaveCount(0);
 
-    // Assert static "Đã nhận" label exists (with aria-label)
+    // Assert static "Đã nhận: N Kudos" label exists (with aria-label)
     const receivedLabel = page.locator('p[aria-label="Kudos đã nhận"]');
     await expect(receivedLabel).toBeVisible();
 
     const labelText = await receivedLabel.textContent();
-    expect(labelText?.trim()).toBe("Đã nhận");
+    expect(labelText?.trim()).toMatch(/^Đã nhận: \d+ Kudos$/);
   });
 
   // ============================================================================

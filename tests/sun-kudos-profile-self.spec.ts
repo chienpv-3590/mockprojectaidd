@@ -9,7 +9,7 @@ import { SunKudosProfileSelfPage } from "./pages/sun-kudos-profile-self-page";
  * - SELF-PROFILE-002: logged-in → renders name, title, avatar
  * - SELF-PROFILE-003: renders 5 stat tiles (received, sent, hearts, box opened, box unopened)
  * - SELF-PROFILE-004: renders badge collection (4 badges + locked slots)
- * - SELF-PROFILE-005: Tab toggle "Đã nhận" ↔ "Đã gửi" changes feed content
+ * - SELF-PROFILE-005: Feed selector dropdown "Đã nhận" ↔ "Đã gửi" changes feed content
  * - SELF-PROFILE-006: Year dropdown removed — no year <select> rendered
  * - SELF-PROFILE-007: "Mở Secret Box" button present; click opens modal when unopened > 0
  * - SELF-PROFILE-008: Secret Box unopened count decrements after opening
@@ -122,10 +122,11 @@ test.describe("/sun-kudos/profile — User's Own Profile", () => {
   });
 
   // ============================================================================
-  // SELF-PROFILE-005 — Tab toggle: "Đã nhận" ↔ "Đã gửi" changes feed
+  // SELF-PROFILE-005 — Feed selector dropdown: "Đã nhận" ↔ "Đã gửi" changes feed
+  // (design node 362:5089 — the "Đã gửi (N)" dropdown next to the KUDOS title)
   // ============================================================================
 
-  test("SELF-PROFILE-005 — tab toggle switches between received/sent feed", async ({
+  test("SELF-PROFILE-005 — feed selector switches between received/sent feed", async ({
     authedContext,
     page,
   }) => {
@@ -135,29 +136,20 @@ test.describe("/sun-kudos/profile — User's Own Profile", () => {
 
     const profilePage = new SunKudosProfileSelfPage(page);
 
-    // Both tabs should exist
-    const receivedTab = profilePage.receivedTab();
-    const sentTab = profilePage.sentTab();
+    // The dropdown trigger exists and defaults to "Đã nhận" (received).
+    const selector = profilePage.feedSelector();
+    await expect(selector).toBeVisible({ timeout: 5000 });
+    expect((await selector.textContent())?.toLowerCase()).toContain("nhận");
 
-    await expect(receivedTab).toBeVisible({ timeout: 5000 });
-    await expect(sentTab).toBeVisible({ timeout: 5000 });
-
-    // Click sent tab
-    await sentTab.click();
+    // Open dropdown → choose "Đã gửi" (sent).
+    await profilePage.selectFeed("sent");
     await page.waitForLoadState("networkidle");
+    expect((await selector.textContent())?.toLowerCase()).toContain("gửi");
 
-    // Sent tab should now be active
-    const activeTab = profilePage.activeTab();
-    const activeText = await activeTab.textContent();
-    expect(activeText?.toLowerCase()).toContain("gửi");
-
-    // Click back to received
-    await receivedTab.click();
+    // Switch back to "Đã nhận" (received).
+    await profilePage.selectFeed("received");
     await page.waitForLoadState("networkidle");
-
-    // Verify received tab is active again
-    const activeAfterSwitch = await profilePage.activeTab().textContent();
-    expect(activeAfterSwitch?.toLowerCase()).toContain("nhận");
+    expect((await selector.textContent())?.toLowerCase()).toContain("nhận");
   });
 
   // ============================================================================
