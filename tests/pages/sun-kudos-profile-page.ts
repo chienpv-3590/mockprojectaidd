@@ -204,11 +204,11 @@ export class SunKudosProfilePage {
   }
 
   /**
-   * Assert that "Đã nhận" label is visible.
+   * Assert that the "Đã nhận: N Kudos" label is visible.
    */
   async assertReceivedLabelVisible() {
     const label = await this.getReceivedLabel();
-    expect(label?.trim()).toBe("Đã nhận");
+    expect(label?.trim()).toMatch(/^Đã nhận: \d+ Kudos$/);
   }
 
   /**

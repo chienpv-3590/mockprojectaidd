@@ -74,18 +74,21 @@ export class SunKudosProfileSelfPage {
     return this.badgeCollection().locator('[aria-label*="chưa mở khóa"]').first();
   }
 
-  // Feed tabs — "Đã nhận" and "Đã gửi" (rendered as tab buttons)
-  receivedTab(): Locator {
-    return this.page.locator('button:has-text("Đã nhận")').first();
+  // Feed selector — design C.3 dropdown ("Đã nhận (N)" / "Đã gửi (N)").
+  // The trigger always shows the active direction; options appear once opened.
+  feedSelector(): Locator {
+    return this.page.locator('[data-testid="feed-selector"]');
   }
 
-  sentTab(): Locator {
-    return this.page.locator('button:has-text("Đã gửi")').first();
+  feedOption(direction: "received" | "sent"): Locator {
+    const text = direction === "received" ? "Đã nhận" : "Đã gửi";
+    return this.page.locator('[role="option"]').filter({ hasText: text }).first();
   }
 
-  activeTab(): Locator {
-    // Active tab will have aria-pressed="true" or aria-selected="true"
-    return this.page.locator('button[aria-pressed="true"], [role="tab"][aria-selected="true"]').first();
+  /** Open the dropdown and pick a direction. */
+  async selectFeed(direction: "received" | "sent") {
+    await this.feedSelector().click();
+    await this.feedOption(direction).click();
   }
 
   // Kudos feed — list of cards (uses the standard KudosCard component)

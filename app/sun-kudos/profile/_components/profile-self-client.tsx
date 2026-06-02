@@ -15,6 +15,7 @@
 import { useCallback, useState, useTransition } from "react";
 import { ProfileStatsPanel } from "./profile-stats-panel";
 import { ProfileAwardsHeader } from "./profile-awards-header";
+import { ProfileFeedSelector } from "./profile-feed-selector";
 import { ProfileKudosFeed } from "./profile-kudos-feed";
 import { SecretBoxOpenDialog } from "@/app/_components/sun-kudos/secret-box-open-dialog";
 import { useToast } from "@/app/_components/sun-kudos/_lib/use-toast";
@@ -149,10 +150,16 @@ export function ProfileSelfClient({
       />
 
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        <ProfileAwardsHeader />
+        <ProfileAwardsHeader
+          rightSlot={
+            <ProfileFeedSelector
+              activeTab={activeTab}
+              counts={{ received: stats.received, sent: stats.sent }}
+              onTabChange={handleTabChange}
+            />
+          }
+        />
         <ProfileKudosFeed
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
           rows={rows}
           onLoadMore={handleLoadMore}
           hasMore={!!nextCursor}
