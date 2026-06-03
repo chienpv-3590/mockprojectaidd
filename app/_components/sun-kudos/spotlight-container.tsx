@@ -314,10 +314,12 @@ export function SpotlightContainer({
  * Older entries fade out (top has lowest opacity, bottom = 1.0).
  */
 function ActivityLogStack({ nodes }: { nodes: SpotlightNode[] }) {
+  // Design B.7 (node 2940:14230) shows 6 stacked rows, oldest (faint) at top →
+  // newest (full opacity) at bottom.
   const items = [...nodes]
     .filter((n) => n.last_received_at)
     .sort((a, b) => b.last_received_at.localeCompare(a.last_received_at))
-    .slice(0, 5)
+    .slice(0, 6)
     .reverse();
 
   if (items.length === 0) return null;

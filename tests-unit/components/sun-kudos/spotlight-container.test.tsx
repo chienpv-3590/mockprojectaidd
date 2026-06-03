@@ -331,6 +331,23 @@ describe("<SpotlightContainer />", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("caps the activity log at 6 rows (design B.7 shows 6 stacked lines)", async () => {
+    const nodes = Array.from({ length: 9 }, (_, i) =>
+      buildNode({
+        user_id: `u${i}`,
+        name: `Sunner${i}`,
+        // Distinct timestamps so the newest-6 are deterministic.
+        last_received_at: `2026-05-26T${String(8 + i).padStart(2, "0")}:00:00Z`,
+      })
+    );
+    await renderWithNodes(
+      <SpotlightContainer {...defaultProps} nodes={nodes} />
+    );
+    expect(
+      screen.getAllByText(/đã nhận được một Kudos mới/)
+    ).toHaveLength(6);
+  });
+
   // --- onNodeClick wires through -----------------------------------------
   // Uses fireEvent.click on SVG <text> nodes: userEvent.click hangs in jsdom
   // on SVG elements due to pointer-events simulation overhead.
