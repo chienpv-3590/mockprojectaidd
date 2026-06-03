@@ -439,6 +439,14 @@ export function LiveBoardClient({ initial, currentUserId, initialRecipient }: Li
     []
   );
 
+  // Top "Tìm kiếm Sunner" result picked → open that Sunner's profile.
+  const handleSelectSunner = useCallback(
+    (user: UserProfile) => {
+      router.push(`/sun-kudos/profile/${user.user_id}`);
+    },
+    [router]
+  );
+
   // ---------------------------------------------------------------------------
   // Spotlight interactions
   // ---------------------------------------------------------------------------
@@ -475,7 +483,7 @@ export function LiveBoardClient({ initial, currentUserId, initialRecipient }: Li
       <div className="px-6 py-8 sm:px-10 lg:px-36">
         <div className="mx-auto flex max-w-[1152px] items-center gap-4">
           <SubmitInput onOpenDialog={() => setDialogOpen(true)} />
-          <SunnerSearchInput onChange={handleSpotlightSearch} />
+          <SunnerSearchInput onSearch={handleSunnerSearch} onSelect={handleSelectSunner} />
         </div>
       </div>
 

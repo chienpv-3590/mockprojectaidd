@@ -669,60 +669,39 @@ describe("<LiveBoardClient />", () => {
     });
   });
 
-  // ── Test 15: sunner search → highlightedUserId propagated ────────────────
-  it("typing in sunner search sets highlightedUserId on SpotlightContainer", async () => {
-    const initial = baseInitial();
-    initial.spotlightNodes = [
+  // ── Test 15: sunner search → results dropdown → navigate to profile ──────
+  it("picking a sunner search result navigates to that profile", async () => {
+    mockSearchSunners.mockResolvedValueOnce([
       {
         user_id: "u-match",
-        name: "Nguyen Van A",
-        received_count: 3,
-        last_received_at: "2026-05-26",
-        latest_kudos_id: "k-match-1",
+        full_name_vi: "Nguyen Van A",
+        department_code: "CEVC1",
+        department_name_vi: "CEVC1 Team",
+        employee_code: "SUN001",
+        title: "Engineer",
+        avatar_url: null,
+        tier: 0,
       },
-    ];
+    ]);
 
-    render(<LiveBoardClient initial={initial} currentUserId="user-1" />);
+    render(<LiveBoardClient initial={baseInitial()} currentUserId="user-1" />);
     await userEvent.type(screen.getByPlaceholderText("Tìm kiếm sunner"), "Nguyen");
 
-    await waitFor(() => {
-      expect(screen.getByTestId("spotlight-container")).toHaveAttribute(
-        "data-highlighted",
-        "u-match"
-      );
-    });
+    const result = await screen.findByText("Nguyen Van A");
+    await userEvent.click(result);
+
+    expect(mockRouterPush).toHaveBeenCalledWith("/sun-kudos/profile/u-match");
   });
 
-  // ── Test 16: clearing search → highlightedUserId cleared ─────────────────
-  it("clearing sunner search clears the highlighted node", async () => {
-    const initial = baseInitial();
-    initial.spotlightNodes = [
-      {
-        user_id: "u-match",
-        name: "Nguyen Van A",
-        received_count: 3,
-        last_received_at: "2026-05-26",
-        latest_kudos_id: "k-match-1",
-      },
-    ];
+  // ── Test 16: sunner search with no match → empty-state message ───────────
+  it("sunner search shows an empty-state message when nothing matches", async () => {
+    mockSearchSunners.mockResolvedValueOnce([]);
 
-    render(<LiveBoardClient initial={initial} currentUserId="user-1" />);
-    const input = screen.getByPlaceholderText("Tìm kiếm sunner");
-    await userEvent.type(input, "Nguyen");
-    await waitFor(() => {
-      expect(screen.getByTestId("spotlight-container")).toHaveAttribute(
-        "data-highlighted",
-        "u-match"
-      );
-    });
+    render(<LiveBoardClient initial={baseInitial()} currentUserId="user-1" />);
+    await userEvent.type(screen.getByPlaceholderText("Tìm kiếm sunner"), "zzz");
 
-    await userEvent.clear(input);
-    await waitFor(() => {
-      expect(screen.getByTestId("spotlight-container")).toHaveAttribute(
-        "data-highlighted",
-        ""
-      );
-    });
+    expect(await screen.findByText("Không tìm thấy Sunner")).toBeInTheDocument();
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
   // ── Test 17: initial highlight rows → HighlightCarousel data-count ───────
